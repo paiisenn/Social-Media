@@ -16,6 +16,7 @@ import {
   History,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { Footer } from "./Footer";
 
 const navItems = [
   { href: "/", icon: Home, label: "Trang chủ" },
@@ -45,18 +46,18 @@ function SidebarItem({
   label: string;
   active: boolean;
 }) {
-  const activeClasses = "bg-primary text-primary-foreground";
-  const inactiveClasses = "hover:bg-accent hover:text-accent-foreground";
+  const activeClasses = "bg-[#f9622e] text-primary-foreground";
+  const inactiveClasses = "hover:bg-[#f9622e]/10 hover:text-[#f9622e]";
 
   return (
     <li>
       <Link
         href={href}
-        className={`flex items-center gap-4 rounded-lg px-3 py-2 text-foreground transition-colors duration-200 ${
+        className={`group flex items-center gap-4 rounded-lg px-3 py-2 text-foreground transition-all duration-300 ${
           active ? activeClasses : inactiveClasses
         }`}
       >
-        <Icon className="h-5 w-5" />
+        <Icon className={`h-5 w-5 transition-colors duration-300 ${active ? "" : "group-hover:text-[#f9622e]"}`} />
         <span className="font-medium">{label}</span>
       </Link>
     </li>
@@ -67,27 +68,28 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-64 flex-col border-r bg-background p-4 md:flex">
-      <div className="flex flex-1 flex-col gap-4">
-        <button className="flex w-4/5 ml-4 cursor-pointer items-center bg-[#F9622E] justify-center gap-2 rounded-lg bg-primary px-3 py-3 font-semibold text-primary-foreground transition-all hover:scale-105 hover:bg-primary/90">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="lucide lucide-plus"
-          >
-            <path d="M5 12h14" />
-            <path d="M12 5v14" />
-          </svg>
-          <span>Đăng bài</span>
-        </button>
-        <nav className="flex-1">
+    <aside className="sticky top-0 hidden h-screen w-64 flex-col border-r bg-background py-4 pl-4 md:flex">
+      <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full flex flex-1 flex-col gap-4 overflow-y-auto pr-3">        
+        <nav className="flex flex-1 flex-col gap-4">
+          <button className="flex w-[80%] ml-5 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#f9622e] px-3 py-3 font-semibold text-primary-foreground transition-all hover:scale-105 hover:bg-[#f9622e]/90">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="lucide lucide-plus"
+            >
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
+            </svg>
+            <span>Đăng bài</span>
+          </button>
+          <div className="h-px bg-gray-300" />
           <ul className="space-y-2">
             {navItems.map((item, index) => (
               <SidebarItem
@@ -97,7 +99,7 @@ export function Sidebar() {
               />
             ))}
           </ul>
-          <div className="my-4 h-px bg-border bg-gray-400" />
+          <div className="my-4 h-px bg-gray-300" />
           <ul className="space-y-2">
             {secondaryNavItems.map((item, index) => (
               <SidebarItem
@@ -107,7 +109,9 @@ export function Sidebar() {
               />
             ))}
           </ul>
+          <div className="my-4 h-px bg-gray-300" />
         </nav>
+        <Footer />
       </div>
     </aside>
   );
