@@ -68,9 +68,9 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 flex-col border-r bg-background py-4 pl-4 md:flex">
-      <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full flex flex-1 flex-col gap-4 overflow-y-auto pr-3">        
-        <nav className="flex flex-1 flex-col gap-4">
+    <aside className="sticky top-14 hidden h-[calc(100vh-4rem)] w-64 flex-col border-r bg-background py-4 pl-4 md:flex">
+      <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full flex-1 overflow-y-auto pr-3 pt-2 py-1">
+        <nav className="flex flex-1 flex-col gap-2">
           <button className="flex w-[80%] ml-5 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#f9622e] px-3 py-3 font-semibold text-primary-foreground transition-all hover:scale-105 hover:bg-[#f9622e]/90">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -89,7 +89,7 @@ export function Sidebar() {
             </svg>
             <span>Đăng bài</span>
           </button>
-          <div className="h-px bg-gray-300" />
+          <div className="my-2 h-px bg-gray-300" />
           <ul className="space-y-2">
             {navItems.map((item, index) => (
               <SidebarItem
@@ -99,7 +99,7 @@ export function Sidebar() {
               />
             ))}
           </ul>
-          <div className="my-4 h-px bg-gray-300" />
+          <div className="h-px bg-gray-300" />
           <ul className="space-y-2">
             {secondaryNavItems.map((item, index) => (
               <SidebarItem
@@ -109,10 +109,9 @@ export function Sidebar() {
               />
             ))}
           </ul>
-          <div className="my-4 h-px bg-gray-300" />
         </nav>
-        <Footer />
       </div>
+      <Footer />
     </aside>
   );
 }

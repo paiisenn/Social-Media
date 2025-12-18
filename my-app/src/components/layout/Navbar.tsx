@@ -28,7 +28,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full bg-white shadow-md">
       {/* Sử dụng flexbox để dễ dàng quản lý và responsive hơn */}
-      <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4">
+      <div className="container mx-auto flex h-14 items-center justify-between gap-4 px-4">
 
         {/* === LEFT: Logo & Search === */}
         <div className="flex flex-1 items-center gap-2 md:flex-none">
@@ -49,7 +49,7 @@ export function Navbar() {
             <input
               type="text"
               placeholder="Tìm kiếm trên SocialzZz..."
-              className="w-full rounded-full border-none bg-gray-100 py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 transition-all duration-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F9622E]"
+              className="w-full rounded-full border-none bg-gray-100 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 transition-all duration-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F9622E]"
             />
           </div>
         </div>
@@ -80,7 +80,7 @@ export function Navbar() {
           <div className="relative">
             <button
               onClick={() => setProfileMenuOpen(!isProfileMenuOpen)} // Toggle menu on click
-              className={`group relative cursor-pointer flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 transition-colors duration-200 hover:bg-gray-200 ${isProfileMenuOpen ? "ring-2 ring-[#F9622E]" : ""}`}
+              className={`group relative cursor-pointer flex h-9 w-9 items-center justify-center  rounded-full bg-gray-100 transition-colors duration-200 hover:bg-gray-200 ${isProfileMenuOpen ? "ring-2 ring-[#F9622E]" : "ring-2 ring-gray-400"}`}
               aria-label="Mở menu người dùng"
               aria-expanded={isProfileMenuOpen}
               aria-haspopup="true"
