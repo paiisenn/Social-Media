@@ -16,7 +16,7 @@ import {
   Globe,  
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 
 export function Navbar() {
@@ -77,13 +77,14 @@ export function Navbar() {
           </ActionIcon>
 
           {/* Avatar Dropdown */}
-          <div className="relative">
+          <div className="relative" suppressHydrationWarning>
             <button
               onClick={() => setProfileMenuOpen(!isProfileMenuOpen)} // Toggle menu on click
               className={`group relative cursor-pointer flex h-9 w-9 items-center justify-center  rounded-full bg-gray-100 transition-colors duration-200 hover:bg-gray-200 ${isProfileMenuOpen ? "ring-2 ring-[#F9622E]" : "ring-2 ring-gray-400"}`}
               aria-label="Mở menu người dùng"
               aria-expanded={isProfileMenuOpen}
               aria-haspopup="true"
+              suppressHydrationWarning
             >
               <Image
                 src="/userAvatar.png"
@@ -95,19 +96,24 @@ export function Navbar() {
             </button>
 
             {/* Dropdown Menu */}
-            <div // Thêm z-index để đảm bảo dropdown hiển thị trên các phần tử khác
-              className={`absolute right-0 top-full mt-2 w-60 origin-top-right transform rounded-lg bg-white p-1 shadow-xl ring-1 ring-black ring-opacity-5 transition-all duration-200 ease-in-out z-50
-                ${isProfileMenuOpen ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none"}`}
+            <div
+              // Thêm z-index để đảm bảo dropdown hiển thị trên các phần tử khác
+              // Các class transition, opacity, và scale sẽ tạo hiệu ứng ẩn/hiện mượt mà
+              className={`absolute right-0 top-full mt-2 w-60 origin-top-right transform rounded-lg bg-white p-1 shadow-xl ring-1 ring-black ring-opacity-5 transition-all duration-200 ease-in-out z-50 ${
+                isProfileMenuOpen
+                  ? "scale-100 opacity-100"
+                  : "scale-95 opacity-0 pointer-events-none"
+              }`}
             >
               {/* User Info Section */}
-              <Link href="/profile" onClick={closeProfileMenu} className="block w-full rounded-md p-2 text-left transition-colors duration-150 hover:bg-gray-100">
-                <p className="font-bold flex items-center gap-2">
-                  <span className="text-left ml-0.5">Nguyễn Văn A</span> 
+              <div className="block w-full rounded-md p-2 text-left bg-orange-300/90">
+                <p className="font-semibold text-gray-800">
+                  Nguyễn Văn A
                 </p>
-                <p className="text-sm text-gray-500 flex items-center gap-2">
-                  <span className="text-left ml-0.5">nguyenvana@gmail.com</span>
+                <p className="text-sm text-gray-500">
+                  nguyenvana@gmail.com
                 </p>
-              </Link>
+              </div>
               <div className="my-1 h-px bg-gray-200" />
 
               {/* Main Menu Items Section */}
