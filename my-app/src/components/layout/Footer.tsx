@@ -24,7 +24,7 @@ export function Footer() {
           <Link
             key={link.href}
             href={link.href}
-            className="group relative transition-colors duration-200 hover:text-foreground hover:underline hover:text-orange-600"
+            className="group relative transition-colors duration-200 hover:text-foreground hover:text-orange-600"
           >
             <span className="relative z-10">{link.label}</span>
             <span

@@ -4,7 +4,7 @@ import MainLayout from "@/app/main/layout";
 export default function Home() {
   return (
     <MainLayout>
-      <div className="">Social media</div>
+      <div>Social media</div>
     </MainLayout>
   );
 }
