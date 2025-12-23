@@ -161,7 +161,7 @@ export function SidebarRight() {
   };
 
   return (
-    <aside className="custom-scrollbar sticky top-14 hidden h-[calc(100vh-3.5rem)] w-80 flex-col gap-4 overflow-y-auto bg-gray-50 p-4 lg:flex">
+    <aside className="custom-scrollbar sticky top-14 hidden h-[calc(100vh-3.5rem)] w-78 flex-col gap-4 overflow-y-auto bg-gray-50 p-4 lg:flex">
       {/* Khối Tin nhắn */}
       <div className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between">
@@ -260,7 +260,7 @@ export function SidebarRight() {
             <li key={friend.id} className="flex items-center gap-3">
               <Image src={friend.avatar} alt={friend.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
               <div className="flex-1">
-                <p className="font-semibold text-gray-800">{friend.name}</p>
+                <p className="font-semibold text-gray-800 text-sm">{friend.name}</p>
                 <p className="text-xs text-gray-500">{friend.mutualFriends} bạn chung</p>
               </div>
               <div className="flex items-center gap-2">

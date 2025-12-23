@@ -108,7 +108,7 @@ export default function ProfilePage() {
         {/* Cover & Profile Section */}
         <div className="relative mb-6 overflow-hidden rounded-xl bg-white shadow-sm">
           {/* Cover Image */}
-          <div className="relative h-48 bg-gradient-to-r from-[#f9622e] to-[#ff8a50] md:h-64">
+          <div className="relative h-48 bg-linear-to-r from-[#f9622e] to-[#ff8a50] md:h-64">
             {userData.coverImage && (
               <Image
                 src={userData.coverImage}
@@ -255,7 +255,7 @@ export default function ProfilePage() {
             ].map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
+                onClick={() => setActiveTab(tab.key as "posts" | "about" | "photos")}
                 className={`flex items-center gap-2 px-6 py-4 font-medium transition-colors ${
                   activeTab === tab.key
                     ? "border-b-2 border-[#f9622e] text-[#f9622e]"

@@ -10,7 +10,7 @@ import {
   Bell, // Thêm icon Bell
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import React, { useState } from "react";
+import React from "react";
 
 const mainNavLinks = [
   { href: "/", icon: Home, tooltip: "Trang chủ" },
@@ -22,9 +22,6 @@ const mainNavLinks = [
 
 export function Navbar() {
   const pathname = usePathname();
-  const [isProfileMenuOpen, setProfileMenuOpen] = useState(false);
-
-  const closeProfileMenu = () => setProfileMenuOpen(false);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white shadow-md">
@@ -86,16 +83,6 @@ function MainNavLink({ href, active, tooltip, children }: { href: string; active
       <div className={`flex h-10 w-24 items-center justify-center rounded-lg transition-colors duration-200 ${active ? activeClasses : inactiveClasses}`}>
         {children}
       </div>
-      <div className="absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">{tooltip}</div>
-    </Link>
-  );
-}
-
-// Component cho các icon hành động bên phải
-function ActionIcon({ href, tooltip, children }: { href: string; tooltip: string; children: React.ReactNode }) {
-  return (
-    <Link href={href} className="group relative flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 transition-colors duration-200 hover:bg-gray-200" aria-label={tooltip}>
-      {children}
       <div className="absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">{tooltip}</div>
     </Link>
   );

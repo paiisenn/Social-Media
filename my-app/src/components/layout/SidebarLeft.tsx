@@ -41,8 +41,8 @@ function SidebarItem({
   active: boolean;
   isDanger?: boolean;
 }) {
-  const activeClasses = "bg-[#f9622e]/10 text-[#f9622e]";
-  const inactiveClasses = "hover:bg-[#f9622e]/10 hover:text-[#f9622e]";
+  const activeClasses = "bg-[#f9622e]/20 text-[#f9622e]";
+  const inactiveClasses = "hover:bg-gray-400/20 hover:text-[#f9622e]";
   const dangerClasses = "text-red-600 hover:bg-red-600/10";
 
   return (
@@ -87,8 +87,8 @@ export function SidebarLeft() {
     email: "phat123@gmail.com",
     stats: {
       posts: 29,
-      followers: 380, // 14.5M
-      following: 12800, // 2.3M
+      followers: 380, 
+      following: 12800, 
     },
   };
 
@@ -128,7 +128,13 @@ export function SidebarLeft() {
         <nav className="w-full">
           <ul className="space-y-1">
             {sidebarNavItems.map((item) => (
-              <SidebarItem key={item.href} {...item} active={pathname === item.href} />
+              <SidebarItem
+                key={item.href}
+                {...item}
+                active={
+                  pathname === item.href || (pathname?.startsWith(item.href) && item.href !== "/")
+                }
+              />
             ))}
           </ul>
         </nav>
