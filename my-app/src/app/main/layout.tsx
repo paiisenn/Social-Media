@@ -12,7 +12,7 @@ export default function MainLayout({
       <Navbar />
       <div className="flex flex-1 bg-gray-100">
         <SidebarLeft />
-        <main className="flex-1 p-4">{children}</main>
+        <main className="flex-1 px-6 py-4">{children}</main>
         <SidebarRight />
       </div>
     </div>

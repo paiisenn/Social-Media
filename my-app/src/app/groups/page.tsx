@@ -11,8 +11,8 @@ const mockGroups = [
 		name: "Cộng Đồng Front-end Việt Nam",
 		description: "Nơi thảo luận, chia sẻ kiến thức về HTML, CSS, JS, React, Vue, Angular và các công nghệ web mới nhất.",
 		members: 45200,
-		cover: "/group-cover-1.png",
-		category: "Công nghệ",
+		cover: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&auto=format&fit=crop&q=60",
+
 		privacy: "Public",
 		friends: 12,
 		createdAt: "2023-12-01",
@@ -22,8 +22,8 @@ const mockGroups = [
 		name: "Nghiện Decor - Trang Trí Nhà Cửa",
 		description: "Chia sẻ ý tưởng decor phòng, nhà cửa, review nội thất và không gian sống chill.",
 		members: 128500,
-		cover: "/group-cover-2.png",
-		category: "Đời sống",
+		cover: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800&auto=format&fit=crop&q=60",
+
 		privacy: "Public",
 		friends: 8,
 		createdAt: "2023-11-20",
@@ -33,8 +33,8 @@ const mockGroups = [
 		name: "Hội Review Đồ Ăn Có Tâm",
 		description: "Review chân thực các quán ăn, món ngon vỉa hè đến sang chảnh. Không nhận booking.",
 		members: 89000,
-		cover: "/group-cover-3.png",
-		category: "Ẩm thực",
+		cover: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&auto=format&fit=crop&q=60",
+
 		privacy: "Private",
 		friends: 24,
 		createdAt: "2024-01-15",
@@ -44,8 +44,8 @@ const mockGroups = [
 		name: "Gen Z Tập Làm Người Lớn",
 		description: "Góc tâm sự, chia sẻ kỹ năng sống, tài chính cá nhân và chuyện đi làm của Gen Z.",
 		members: 32100,
-		cover: "/group-cover-4.png",
-		category: "Tâm sự",
+		cover: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&auto=format&fit=crop&q=60",
+
 		privacy: "Public",
 		friends: 5,
 		createdAt: "2023-10-05",
@@ -55,8 +55,8 @@ const mockGroups = [
 		name: "Tuyển dụng IT - Việc làm Tech",
 		description: "Cập nhật job IT xịn, lương cao, remote/hybrid cho anh em developer.",
 		members: 15600,
-		cover: "/group-cover-5.png",
-		category: "Việc làm",
+		cover: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&auto=format&fit=crop&q=60",
+
 		privacy: "Public",
 		friends: 0,
 		createdAt: "2024-02-01",
@@ -66,8 +66,8 @@ const mockGroups = [
 		name: "Hội Yêu Mèo (Vietnam Cat Lovers)",
 		description: "Chia sẻ khoảnh khắc cute của hoàng thượng, kinh nghiệm chăm sóc boss.",
 		members: 210500,
-		cover: "/group-cover-6.png",
-		category: "Thú cưng",
+		cover: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&auto=format&fit=crop&q=60",
+
 		privacy: "Public",
 		friends: 42,
 		createdAt: "2023-09-12",
@@ -104,7 +104,7 @@ export default function GroupsPage() {
 			await new Promise((resolve) => setTimeout(resolve, 1500));
 
 			// Giả lập dữ liệu trả về theo tab
-			const data = activeTab === "my-groups" 
+			const data = activeTab === "my-groups"
 				? mockGroups.filter((_, i) => [0, 2, 5].includes(i)) // Giả định đã tham gia nhóm 1, 3, 6
 				: mockGroups;
 
@@ -135,8 +135,8 @@ export default function GroupsPage() {
 			name: newGroupData.name,
 			description: newGroupData.description,
 			members: 1,
-			cover: "/group-cover-1.png", // Placeholder image
-			category: "Chung",
+			cover: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop&q=60", // Default cover for new groups
+
 			privacy: newGroupData.privacy,
 			friends: 0,
 			createdAt: new Date().toISOString(),
@@ -149,7 +149,7 @@ export default function GroupsPage() {
 
 	return (
 		<MainLayout>
-			<div className="mx-auto max-w-5xl px-4 py-4">
+			<div className="mx-auto max-w-5xl py-2">
 				{/* Header Section */}
 				<div className="mb-6 flex flex-col gap-6">
 					<div>
@@ -159,7 +159,7 @@ export default function GroupsPage() {
 							</span>
 							<h2 className="text-sm font-bold uppercase tracking-wider text-[#f9622e]">Cộng đồng</h2>
 						</div>
-						<h1 className="text-4xl font-black text-gray-900 tracking-tight sm:text-5xl">
+						<h1 className="text-3xl font-black text-gray-900 tracking-tight sm:text-4xl">
 							Khám phá <span className="text-transparent bg-clip-text bg-linear-to-r from-[#f9622e] to-[#ff9f43]">Cộng đồng</span>
 						</h1>
 						<p className="mt-3 text-base text-gray-500 max-w-2xl">
@@ -194,22 +194,20 @@ export default function GroupsPage() {
 					<div className="flex items-center gap-2 rounded-xl bg-gray-100/50 p-1.5 w-fit">
 						<button
 							onClick={() => setActiveTab("discover")}
-							className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-all duration-300 ${
-								activeTab === "discover"
-									? "bg-white text-[#f9622e] shadow-sm ring-1 ring-black/5"
-									: "text-gray-500 hover:bg-gray-200/50 cursor-pointer hover:text-gray-700"
-							}`}
+							className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-all duration-300 ${activeTab === "discover"
+								? "bg-white text-[#f9622e] shadow-sm ring-1 ring-black/5"
+								: "text-gray-500 hover:bg-gray-200/50 cursor-pointer hover:text-gray-700"
+								}`}
 						>
 							<Compass className={`h-4 w-4 ${activeTab === "discover" ? "animate-pulse" : ""}`} />
 							Khám phá
 						</button>
 						<button
 							onClick={() => setActiveTab("my-groups")}
-							className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-all duration-300 ${
-								activeTab === "my-groups"
-									? "bg-white text-[#f9622e] shadow-sm ring-1 ring-black/5"
-									: "text-gray-500 cursor-pointer hover:bg-gray-200/50 hover:text-gray-700"
-							}`}
+							className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-all duration-300 ${activeTab === "my-groups"
+								? "bg-white text-[#f9622e] shadow-sm ring-1 ring-black/5"
+								: "text-gray-500 cursor-pointer hover:bg-gray-200/50 hover:text-gray-700"
+								}`}
 						>
 							<Users className="h-4 w-4" />
 							Nhóm của tôi
@@ -278,12 +276,12 @@ export default function GroupsPage() {
 								<p className="mt-2 text-gray-500 max-w-md mx-auto px-4">
 									Rất tiếc! Không thể tìm thấy nhóm nào phù hợp với từ khóa <span className="font-bold text-gray-900">&quot;{query}&quot;</span>
 								</p>
-								<button 
+								<button
 									onClick={() => {
 										setQuery("");
 										setSortOption("newest");
 										setVisibleCount(ITEMS_PER_PAGE);
-									}} 
+									}}
 									className="mt-8 flex items-center cursor-pointer gap-2 rounded-xl bg-[#f9622e] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-orange-500/30 transition-all hover:bg-[#ff7240] hover:shadow-orange-500/40 hover:-translate-y-0.5 active:translate-y-0"
 								>
 									<X className="h-4 w-4" />
@@ -295,66 +293,62 @@ export default function GroupsPage() {
 						<>
 							<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 								{displayedGroups.map((g, index) => (
-								<div
-									key={g.id}
-									style={{ animationDelay: `${index * 100}ms` }}
-									className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md animate-in fade-in slide-in-from-bottom-8"
-								>
-									{/* Cover Image Area */}
-									<div className="relative h-36 w-full overflow-hidden bg-gray-100">
-										{g.cover && (
-											<Image
-												src={g.cover}
-												alt={g.name}
-												fill
-												className="object-cover transition-transform duration-500 group-hover:scale-105"
-											/>
-										)}
-										<div className="absolute top-3 left-3 z-10">
-											<span className="inline-flex items-center rounded-md bg-white/90 px-2 py-1 text-xs font-bold text-[#f9622e] shadow-sm backdrop-blur-sm">
-												{g.category}
-											</span>
-										</div>
-									</div>
+									<div
+										key={g.id}
+										style={{ animationDelay: `${index * 100}ms` }}
+										className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md animate-in fade-in slide-in-from-bottom-8"
+									>
+										{/* Cover Image Area */}
+										<div className="relative h-36 w-full overflow-hidden bg-gray-100">
+											{g.cover && (
+												<Image
+													src={g.cover}
+													alt={g.name}
+													fill
+													className="object-cover transition-transform duration-500 group-hover:scale-105"
+												/>
+											)}
 
-									{/* Content Area */}
-									<div className="flex flex-1 flex-col p-4">
-										<h3 className="mb-1 line-clamp-1 text-lg font-bold text-gray-900 group-hover:text-[#f9622e] transition-colors">
-											{g.name}
-										</h3>
-										
-										<div className="mb-3 flex items-center gap-2 text-xs text-gray-500">
-											<span className="flex items-center gap-1">
-												{g.privacy === "Public" ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-												{g.privacy === "Public" ? "Công khai" : "Riêng tư"}
-											</span>
-											<span>•</span>
-											<span className="font-medium">{formatNumber(g.members)} thành viên</span>
 										</div>
 
-										<p className="mb-4 line-clamp-2 text-sm text-gray-500 flex-1">
-											{g.description}
-										</p>
+										{/* Content Area */}
+										<div className="flex flex-1 flex-col p-4">
+											<h3 className="mb-1 line-clamp-1 text-lg font-bold text-gray-900 group-hover:text-[#f9622e] transition-colors">
+												{g.name}
+											</h3>
 
-										{g.friends > 0 && (
-											<div className="mb-4 flex items-center gap-2">
-												<div className="flex -space-x-2">
-													<div className="h-5 w-5 rounded-full ring-2 ring-white bg-gray-200" />
-													<div className="h-5 w-5 rounded-full ring-2 ring-white bg-gray-300" />
-												</div>
-												<span className="text-xs text-gray-500">
-													<span className="font-semibold text-gray-700">{g.friends} bạn bè</span> đã tham gia
+											<div className="mb-3 flex items-center gap-2 text-xs text-gray-500">
+												<span className="flex items-center gap-1">
+													{g.privacy === "Public" ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+													{g.privacy === "Public" ? "Công khai" : "Riêng tư"}
 												</span>
+												<span>•</span>
+												<span className="font-medium">{formatNumber(g.members)} thành viên</span>
 											</div>
-										)}
 
-										<div className="mt-auto">
-											<button className="flex w-full items-center cursor-pointer justify-center gap-2 rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-bold text-gray-700 transition-all hover:bg-[#f9622e]/10 hover:text-[#f9622e] active:scale-95">
-												Tham gia nhóm
-											</button>
+											<p className="mb-4 line-clamp-2 text-sm text-gray-500 flex-1">
+												{g.description}
+											</p>
+
+											{g.friends > 0 && (
+												<div className="mb-4 flex items-center gap-2">
+													<div className="flex -space-x-2">
+														<div className="h-5 w-5 rounded-full ring-2 ring-white bg-gray-200" />
+														<div className="h-5 w-5 rounded-full ring-2 ring-white bg-gray-300" />
+													</div>
+													<span className="text-xs text-gray-500">
+														<span className="font-semibold text-gray-700">{g.friends} bạn bè</span> đã tham gia
+													</span>
+												</div>
+											)}
+
+											<div className="mt-auto">
+												<button className="flex w-full items-center cursor-pointer justify-center gap-2 rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-bold text-gray-700 transition-all hover:bg-[#f9622e]/10 hover:text-[#f9622e] active:scale-95">
+													Tham gia nhóm
+												</button>
+											</div>
 										</div>
 									</div>
-								</div>
 								))}
 							</div>
 
@@ -383,7 +377,7 @@ export default function GroupsPage() {
 								<X className="h-5 w-5" />
 							</button>
 						</div>
-						
+
 						<form onSubmit={handleCreateGroup} className="p-6">
 							<div className="space-y-5">
 								<div>
@@ -391,19 +385,19 @@ export default function GroupsPage() {
 									<input
 										required
 										value={newGroupData.name}
-										onChange={(e) => setNewGroupData({...newGroupData, name: e.target.value})}
+										onChange={(e) => setNewGroupData({ ...newGroupData, name: e.target.value })}
 										placeholder="VD: Cộng đồng React Việt Nam"
 										className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:border-[#f9622e] focus:outline-none focus:ring-4 focus:ring-[#f9622e]/10 transition-all"
 									/>
 								</div>
-								
+
 								<div>
 									<label className="mb-1.5 block text-sm font-bold text-gray-700">Mô tả</label>
 									<textarea
 										required
 										rows={3}
 										value={newGroupData.description}
-										onChange={(e) => setNewGroupData({...newGroupData, description: e.target.value})}
+										onChange={(e) => setNewGroupData({ ...newGroupData, description: e.target.value })}
 										placeholder="Mô tả mục đích hoạt động của nhóm..."
 										className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:border-[#f9622e] focus:outline-none focus:ring-4 focus:ring-[#f9622e]/10 transition-all"
 									/>
@@ -414,31 +408,29 @@ export default function GroupsPage() {
 									<div className="grid grid-cols-2 gap-3">
 										<button
 											type="button"
-											onClick={() => setNewGroupData({...newGroupData, privacy: "Public"})}
-											className={`flex flex-col items-center justify-center gap-2 rounded-xl border p-3 text-sm font-bold transition-all ${
-												newGroupData.privacy === "Public"
-													? "border-[#f9622e] bg-orange-50 text-[#f9622e] ring-1 ring-[#f9622e]"
-													: "border-gray-200 bg-white cursor-pointer text-gray-500 hover:border-gray-300 hover:bg-gray-50"
-											}`}
+											onClick={() => setNewGroupData({ ...newGroupData, privacy: "Public" })}
+											className={`flex flex-col items-center justify-center gap-2 rounded-xl border p-3 text-sm font-bold transition-all ${newGroupData.privacy === "Public"
+												? "border-[#f9622e] bg-orange-50 text-[#f9622e] ring-1 ring-[#f9622e]"
+												: "border-gray-200 bg-white cursor-pointer text-gray-500 hover:border-gray-300 hover:bg-gray-50"
+												}`}
 										>
 											<Globe className="h-5 w-5" />
 											Công khai
 										</button>
 										<button
 											type="button"
-											onClick={() => setNewGroupData({...newGroupData, privacy: "Private"})}
-											className={`flex flex-col items-center justify-center gap-2 rounded-xl border p-3 text-sm font-bold transition-all ${
-												newGroupData.privacy === "Private"
-													? "border-[#f9622e] bg-orange-50 text-[#f9622e] ring-1 ring-[#f9622e]"
-													: "border-gray-200 bg-white cursor-pointer text-gray-500 hover:border-gray-300 hover:bg-gray-50"
-											}`}
+											onClick={() => setNewGroupData({ ...newGroupData, privacy: "Private" })}
+											className={`flex flex-col items-center justify-center gap-2 rounded-xl border p-3 text-sm font-bold transition-all ${newGroupData.privacy === "Private"
+												? "border-[#f9622e] bg-orange-50 text-[#f9622e] ring-1 ring-[#f9622e]"
+												: "border-gray-200 bg-white cursor-pointer text-gray-500 hover:border-gray-300 hover:bg-gray-50"
+												}`}
 										>
 											<Lock className="h-5 w-5" />
 											Riêng tư
 										</button>
 									</div>
 									<p className="mt-2 text-xs text-gray-500">
-										{newGroupData.privacy === "Public" 
+										{newGroupData.privacy === "Public"
 											? "Bất kỳ ai cũng có thể nhìn thấy mọi người trong nhóm và những gì họ đăng."
 											: "Chỉ thành viên mới nhìn thấy mọi người trong nhóm và những gì họ đăng."}
 									</p>
