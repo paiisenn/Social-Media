@@ -229,13 +229,13 @@ export function PostCard({
             <div className="mt-2 flex justify-end gap-2">
               <button 
                 onClick={handleCancelEdit}
-                className="flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors"
+                className="flex items-center cursor-pointer gap-1 rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors"
               >
                 <X size={14} /> Hủy
               </button>
               <button 
                 onClick={handleSaveEdit}
-                className="flex items-center gap-1 rounded-lg bg-[#f9622e] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#d84e1e] transition-colors"
+                className="flex items-center cursor-pointer gap-1 rounded-lg bg-[#f9622e] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#d84e1e] transition-colors"
               >
                 <Check size={14} /> Lưu
               </button>
