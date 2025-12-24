@@ -117,11 +117,11 @@ export function SidebarLeft() {
           </div>
           <div className="flex flex-col items-center">
             <span className="font-bold text-gray-800">{formatStatNumber(user.stats.followers)}</span>
-            <span className="text-xs text-gray-500">Followers</span>
+            <span className="text-xs text-gray-500">Follower</span>
           </div>
           <div className="flex flex-col items-center">
             <span className="font-bold text-gray-800">{formatStatNumber(user.stats.following)}</span>
-            <span className="text-xs text-gray-500">Following</span>
+            <span className="text-xs text-gray-500">Đã follow</span>
           </div>
         </div>
 

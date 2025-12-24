@@ -1,9 +1,10 @@
 import MainLayout from "@/app/main/layout";
+import HomePage from "@/app/main/home/page";
 
 export default function Home() {
   return (
     <MainLayout>
-      <div>Social media</div>
+      <HomePage />
     </MainLayout>
   );
 }
