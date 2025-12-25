@@ -2,6 +2,7 @@
 
 import { Search, UserPlus, X } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -219,13 +220,15 @@ export function SidebarRight() {
           {activeTab === 'primary' && (
             <ul className="space-y-1">
               {messages.map((msg) => (
-                <li key={msg.id} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-100">
-                  <Image src={msg.avatar} alt={msg.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-gray-800">{msg.name}</p>
-                    <p className={`truncate text-xs ${msg.isRead ? 'text-gray-500' : 'font-bold text-gray-800'}`}>{msg.lastMessage}</p>
-                  </div>
-                  {!msg.isRead && <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500"></div>}
+                <li key={msg.id}>
+                  <Link href={`/messages?name=${encodeURIComponent(msg.name)}&avatar=${encodeURIComponent(msg.avatar)}`} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-100">
+                    <Image src={msg.avatar} alt={msg.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-gray-800">{msg.name}</p>
+                      <p className={`truncate text-xs ${msg.isRead ? 'text-gray-500' : 'font-bold text-gray-800'}`}>{msg.lastMessage}</p>
+                    </div>
+                    {!msg.isRead && <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500"></div>}
+                  </Link>
                 </li>
               ))}
             </ul>
