@@ -14,7 +14,7 @@ import {
   Share,
   Bookmark,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import MainLayout from "@/app/main/layout";
 
 const userData = {
@@ -97,9 +97,24 @@ export default function ProfilePage() {
     "posts"
   );
   const [isFollowing, setIsFollowing] = useState(userData.isFollowing);
+  const [coverImage, setCoverImage] = useState(userData.coverImage);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const handleFollow = () => {
     setIsFollowing(!isFollowing);
+  };
+
+  const handleEditCoverClick = () => {
+    coverInputRef.current?.click();
+  };
+
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setCoverImage(url);
+      // TODO: Gửi file lên server tại đây nếu muốn lưu lại
+    }
   };
 
   return (
@@ -109,19 +124,31 @@ export default function ProfilePage() {
         <div className="relative mb-6 overflow-hidden rounded-xl bg-white shadow-sm">
           {/* Cover Image */}
           <div className="relative h-48 bg-linear-to-r from-[#f9622e] to-[#ff8a50] md:h-64">
-            {userData.coverImage && (
+            {coverImage && (
               <Image
-                src={userData.coverImage}
+                src={coverImage}
                 alt="Cover"
                 fill
                 className="object-cover opacity-20"
               />
             )}
             {userData.isOwnProfile && (
-              <button className="absolute bottom-4 right-4 flex items-center gap-2 rounded-lg bg-black/50 px-3 py-2 text-sm text-white backdrop-blur-sm transition-colors hover:bg-black/60">
-                <Camera className="h-4 w-4" />
-                Edit Cover Photo
-              </button>
+              <>
+                <button
+                  className="absolute bottom-4 right-4 flex items-center gap-2 rounded-lg bg-black/50 px-3 py-2 text-sm text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+                  onClick={handleEditCoverClick}
+                >
+                  <Camera className="h-4 w-4" />
+                  Edit Cover Photo
+                </button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={coverInputRef}
+                  style={{ display: "none" }}
+                  onChange={handleCoverChange}
+                />
+              </>
             )}
           </div>
 
@@ -255,7 +282,9 @@ export default function ProfilePage() {
             ].map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key as "posts" | "about" | "photos")}
+                onClick={() =>
+                  setActiveTab(tab.key as "posts" | "about" | "photos")
+                }
                 className={`flex items-center gap-2 px-6 py-4 font-medium transition-colors ${
                   activeTab === tab.key
                     ? "border-b-2 border-[#f9622e] text-[#f9622e]"
