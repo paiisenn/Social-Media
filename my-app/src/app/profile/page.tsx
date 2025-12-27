@@ -47,9 +47,25 @@ const mockPosts = [
     image: "/userAvatar.png",
     createdAt: "2024-12-19T10:30:00Z",
     likes: 24,
-    comments: 8,
+    comments: [
+      {
+        id: 1,
+        user: "Trần Văn C",
+        avatar: "/userAvatar.png",
+        text: "Bài viết hay quá! 👍",
+        time: "1 giờ trước",
+      },
+      {
+        id: 2,
+        user: "Lê Thị D",
+        avatar: "/userAvatar.png",
+        text: "Hóng phần tiếp theo...",
+        time: "30 phút trước",
+      },
+    ],
     shares: 3,
     isLiked: true,
+    isSaved: false,
   },
   {
     id: "2",
@@ -57,9 +73,10 @@ const mockPosts = [
       "Hoàng hôn hôm nay thật đẹp! Đôi khi bạn cần nghỉ ngơi khỏi việc lập trình và tận hưởng thiên nhiên 🌅",
     createdAt: "2024-12-18T18:45:00Z",
     likes: 45,
-    comments: 12,
+    comments: [],
     shares: 7,
     isLiked: false,
+    isSaved: true,
   },
 ];
 
@@ -112,6 +129,15 @@ export default function ProfilePage() {
   const [editPostContent, setEditPostContent] = useState("");
   const [deletePostId, setDeletePostId] = useState<string | null>(null);
   const [posts, setPosts] = useState(mockPosts);
+  const [commentInputs, setCommentInputs] = useState<{ [key: string]: string }>(
+    {}
+  );
+  const commentInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>(
+    {}
+  );
+  const [openCommentPostId, setOpenCommentPostId] = useState<string | null>(
+    null
+  );
 
   const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -435,12 +461,26 @@ export default function ProfilePage() {
                 {/* Post Actions */}
                 <div className="flex items-center justify-between border-t border-gray-100 pt-4">
                   <div className="flex items-center gap-6">
+                    {/* Like button */}
                     <button
-                      className={`flex items-center gap-2 transition-colors ${
+                      className={`flex items-center gap-2 transition-colors focus:outline-none ${
                         post.isLiked
-                          ? "text-red-500"
+                          ? "text-red-500 animate-pulse"
                           : "text-gray-500 hover:text-red-500"
                       }`}
+                      onClick={() => {
+                        setPosts((prev) =>
+                          prev.map((p) =>
+                            p.id === post.id
+                              ? {
+                                  ...p,
+                                  isLiked: !p.isLiked,
+                                  likes: p.isLiked ? p.likes - 1 : p.likes + 1,
+                                }
+                              : p
+                          )
+                        );
+                      }}
                     >
                       <Heart
                         className={`h-5 w-5 ${
@@ -449,19 +489,148 @@ export default function ProfilePage() {
                       />
                       <span className="text-sm">{post.likes}</span>
                     </button>
-                    <button className="flex items-center gap-2 text-gray-500 transition-colors hover:text-[#f9622e]">
+                    {/* Comment button */}
+                    <button
+                      className={`flex items-center gap-2 transition-colors focus:outline-none ${
+                        openCommentPostId === post.id
+                          ? "text-[#f9622e]"
+                          : "text-gray-500 hover:text-[#f9622e]"
+                      }`}
+                      onClick={() => {
+                        setOpenCommentPostId((prev) =>
+                          prev === post.id ? null : post.id
+                        );
+                        setTimeout(() => {
+                          if (openCommentPostId !== post.id)
+                            commentInputRefs.current[post.id]?.focus();
+                        }, 100);
+                      }}
+                    >
                       <MessageCircle className="h-5 w-5" />
-                      <span className="text-sm">{post.comments}</span>
+                      <span className="text-sm">{post.comments.length}</span>
                     </button>
+                    {/* Share button */}
                     <button className="flex items-center gap-2 text-gray-500 transition-colors hover:text-[#f9622e]">
                       <Share className="h-5 w-5" />
                       <span className="text-sm">{post.shares}</span>
                     </button>
                   </div>
-                  <button className="text-gray-500 transition-colors hover:text-[#f9622e]">
+                  {/* Save button */}
+                  <button
+                    className={`transition-colors focus:outline-none ${
+                      post.isSaved
+                        ? "text-[#f9622e]"
+                        : "text-gray-500 hover:text-[#f9622e]"
+                    }`}
+                    onClick={() => {
+                      setPosts((prev) =>
+                        prev.map((p) =>
+                          p.id === post.id ? { ...p, isSaved: !p.isSaved } : p
+                        )
+                      );
+                    }}
+                  >
                     <Bookmark className="h-5 w-5" />
                   </button>
                 </div>
+
+                {/* Comment Section */}
+                {openCommentPostId === post.id && (
+                  <div className="mt-4">
+                    {/* Danh sách bình luận */}
+                    {post.comments.length > 0 && (
+                      <div className="mb-2 space-y-2">
+                        {post.comments.map((c) => (
+                          <div key={c.id} className="flex items-start gap-2">
+                            <Image
+                              src={c.avatar}
+                              alt={c.user}
+                              width={28}
+                              height={28}
+                              className="rounded-full object-cover h-7 w-7"
+                            />
+                            <div className="bg-gray-100 rounded-lg px-3 py-2">
+                              <span className="font-semibold text-sm text-gray-900">
+                                {c.user}
+                              </span>
+                              <span className="ml-2 text-gray-700 text-sm">
+                                {c.text}
+                              </span>
+                              <div className="text-xs text-gray-400 mt-1">
+                                {c.time}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Ô nhập bình luận */}
+                    <form
+                      className="flex items-center gap-2 mt-2"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const value = commentInputs[post.id]?.trim();
+                        if (!value) return;
+                        setPosts((prev) =>
+                          prev.map((p) =>
+                            p.id === post.id
+                              ? {
+                                  ...p,
+                                  comments: [
+                                    ...p.comments,
+                                    {
+                                      id: Date.now(),
+                                      user: "Bạn",
+                                      avatar: userData.avatar,
+                                      text: value,
+                                      time: "Vừa xong",
+                                    },
+                                  ],
+                                }
+                              : p
+                          )
+                        );
+                        setCommentInputs((prev) => ({
+                          ...prev,
+                          [post.id]: "",
+                        }));
+                      }}
+                    >
+                      <input
+                        ref={(el) => (commentInputRefs.current[post.id] = el)}
+                        type="text"
+                        className="flex-1 rounded-full border px-3 py-2 text-sm"
+                        placeholder="Viết bình luận..."
+                        value={commentInputs[post.id] || ""}
+                        onChange={(e) =>
+                          setCommentInputs((prev) => ({
+                            ...prev,
+                            [post.id]: e.target.value,
+                          }))
+                        }
+                      />
+                      <button
+                        type="submit"
+                        className="rounded-full bg-[#f9622e] p-2 text-white hover:bg-[#e0501e]"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          className="w-5 h-5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M4.5 19.5l15-7.5-15-7.5v6.75l10.5 0-10.5 0v6.75z"
+                          />
+                        </svg>
+                      </button>
+                    </form>
+                  </div>
+                )}
               </div>
             ))}
           </div>
