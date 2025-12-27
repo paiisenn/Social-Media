@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Share,
   Bookmark,
+  Trash2,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import MainLayout from "@/app/main/layout";
@@ -106,6 +107,11 @@ export default function ProfilePage() {
   const [editBio, setEditBio] = useState(userData.bio);
   const [showSettings, setShowSettings] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [postMenuOpen, setPostMenuOpen] = useState<string | null>(null);
+  const [editPostId, setEditPostId] = useState<string | null>(null);
+  const [editPostContent, setEditPostContent] = useState("");
+  const [deletePostId, setDeletePostId] = useState<string | null>(null);
+  const [posts, setPosts] = useState(mockPosts);
 
   const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -349,8 +355,11 @@ export default function ProfilePage() {
         {/* Tab Content */}
         {activeTab === "posts" && (
           <div className="space-y-6">
-            {mockPosts.map((post) => (
-              <div key={post.id} className="rounded-xl bg-white p-6 shadow-sm">
+            {posts.map((post) => (
+              <div
+                key={post.id}
+                className="rounded-xl bg-white p-6 shadow-sm relative"
+              >
                 {/* Post Header */}
                 <div className="mb-4 flex items-center gap-3">
                   <Image
@@ -368,9 +377,43 @@ export default function ProfilePage() {
                       {formatPostDate(post.createdAt)}
                     </div>
                   </div>
-                  <button className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                      onClick={() =>
+                        setPostMenuOpen(
+                          postMenuOpen === post.id ? null : post.id
+                        )
+                      }
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </button>
+                    {postMenuOpen === post.id && (
+                      <div className="absolute right-0 top-8 z-10 w-36 rounded-xl bg-white shadow-lg border p-2">
+                        <button
+                          className="flex w-full items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                          onClick={() => {
+                            setEditPostId(post.id);
+                            setEditPostContent(post.content);
+                            setPostMenuOpen(null);
+                          }}
+                        >
+                          <Edit3 className="h-4 w-4" />
+                          Chỉnh sửa
+                        </button>
+                        <button
+                          className="flex w-full items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded"
+                          onClick={() => {
+                            setDeletePostId(post.id);
+                            setPostMenuOpen(null);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Xóa bài
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Post Content */}
@@ -545,6 +588,77 @@ export default function ProfilePage() {
               >
                 Close
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Dialog sửa bài */}
+        {editPostId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="rounded-xl bg-white p-6 shadow-lg w-full max-w-md">
+              <h2 className="mb-4 text-xl font-bold text-gray-900">
+                Chỉnh sửa bài viết
+              </h2>
+              <textarea
+                className="w-full rounded border px-3 py-2 mb-4"
+                value={editPostContent}
+                onChange={(e) => setEditPostContent(e.target.value)}
+                rows={4}
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  className="rounded px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  onClick={() => setEditPostId(null)}
+                >
+                  Hủy
+                </button>
+                <button
+                  className="rounded px-4 py-2 bg-[#f9622e] text-white hover:bg-[#e0501e]"
+                  onClick={() => {
+                    setPosts(
+                      posts.map((p) =>
+                        p.id === editPostId
+                          ? { ...p, content: editPostContent }
+                          : p
+                      )
+                    );
+                    setEditPostId(null);
+                  }}
+                >
+                  Lưu
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Dialog xác nhận xóa */}
+        {deletePostId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="rounded-xl bg-white p-6 shadow-lg w-full max-w-md">
+              <h2 className="mb-4 text-xl font-bold text-gray-900">
+                Xóa bài viết?
+              </h2>
+              <p className="mb-4">
+                Bạn có chắc chắn muốn xóa bài viết này không?
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  className="rounded px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  onClick={() => setDeletePostId(null)}
+                >
+                  Hủy
+                </button>
+                <button
+                  className="rounded px-4 py-2 bg-red-500 text-white hover:bg-red-600"
+                  onClick={() => {
+                    setPosts(posts.filter((p) => p.id !== deletePostId));
+                    setDeletePostId(null);
+                  }}
+                >
+                  Xóa
+                </button>
+              </div>
             </div>
           </div>
         )}
