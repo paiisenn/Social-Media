@@ -3,7 +3,6 @@
 import {
   Image as ImageIcon,
   Video,
-  Plus,
   X,
   Globe,
   ChevronDown,
@@ -15,7 +14,7 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 
-interface CreatePostProps {
+interface CreatePostProfileProps {
   onCreatePost?: (postData: {
     content: string;
     media: { url: string; type: "image" | "video" } | null;
@@ -23,7 +22,7 @@ interface CreatePostProps {
   }) => void;
 }
 
-export function CreatePost({ onCreatePost }: CreatePostProps) {
+export function CreatePostProfile({ onCreatePost }: CreatePostProfileProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<{
     url: string;
@@ -149,7 +148,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
     <>
       <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {/* Khu vực 1: Avatar + Input */}
-        <div className="flex items-center gap-4 pb-4">
+        <div className="flex items-center gap-4">
           {/* Avatar */}
           <div className="h-12 w-12 cursor-pointer shrink-0 rounded-full bg-linear-to-br from-blue-400 to-blue-600 overflow-hidden">
             <Image
@@ -184,43 +183,6 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Underline phân cách */}
-        <div className="border-b border-gray-200" />
-
-        {/* Khu vực 2: Tin (Stories) - Kéo ngang */}
-        <div className="mt-4 flex gap-3 overflow-x-auto pb-4 cursor-grab active:cursor-grabbing [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#f9622e] [&::-webkit-scrollbar-button]:hidden">
-          {/* Tạo tin */}
-          <div className="relative h-48 w-32 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-gray-50 transition hover:opacity-90">
-            <div className="h-2/3 bg-linear-to-br from-blue-400 to-blue-600 opacity-80"></div>
-            <div className="absolute bottom-0 flex h-1/3 w-full flex-col items-center justify-end pb-2 bg-white">
-              <span className="text-xs font-medium text-gray-700">Tạo tin</span>
-            </div>
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 rounded-full border-4 border-white bg-blue-500 p-1 text-white">
-              <Plus size={20} />
-            </div>
-          </div>
-
-          {/* Tin của người khác (Mockup) */}
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="relative h-48 w-32 shrink-0 cursor-pointer overflow-hidden rounded-xl bg-gray-200 transition hover:opacity-90"
-            >
-              <div
-                className={`h-full w-full bg-linear-to-b ${
-                  i % 2 === 0
-                    ? "from-purple-500 to-pink-500"
-                    : "from-yellow-400 to-orange-500"
-                }`}
-              />
-              <div className="absolute top-3 left-3 h-10 w-10 rounded-full border-4 border-blue-500 bg-gray-300" />
-              <div className="absolute bottom-3 left-3 text-xs font-medium text-white drop-shadow-md">
-                Người dùng {i}
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -270,7 +232,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                   />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Nguyễn Văn A</h3>
+                  <h3 className="font-semibold text-gray-900">Pure Phat</h3>
                   <div className="relative mt-1">
                     <button
                       onClick={() => setIsPrivacyOpen(!isPrivacyOpen)}
@@ -329,7 +291,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
 
               {/* Input */}
               <textarea
-                placeholder="Bạn đang nghĩ gì thế, Nguyễn Văn A?"
+                placeholder="Bạn đang nghĩ gì thế, Pure Phat?"
                 className="min-h-37.5 w-full resize-none bg-transparent text-lg text-gray-900 placeholder-gray-500 focus:outline-none"
                 autoFocus
                 value={content}
@@ -376,12 +338,6 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                     title="Ảnh/Video"
                   >
                     <ImageIcon size={24} />
-                  </button>
-                  <button
-                    className="rounded-full p-2 text-blue-500 hover:bg-gray-100"
-                    title="Gắn thẻ người khác"
-                  >
-                    <Plus size={24} />
                   </button>
                   <div className="relative" ref={emojiPickerRef}>
                     <button
