@@ -14,7 +14,7 @@ import {
   Share,
   Bookmark,
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import MainLayout from "@/app/main/layout";
 
 const userData = {
@@ -98,7 +98,17 @@ export default function ProfilePage() {
   );
   const [isFollowing, setIsFollowing] = useState(userData.isFollowing);
   const [coverImage, setCoverImage] = useState(userData.coverImage);
+  const [avatar, setAvatar] = useState(userData.avatar);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editName, setEditName] = useState(
+    userData.firstName + " " + userData.lastName
+  );
+  const [editBio, setEditBio] = useState(userData.bio);
+  const [showSettings, setShowSettings] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const handleFollow = () => {
     setIsFollowing(!isFollowing);
@@ -117,9 +127,26 @@ export default function ProfilePage() {
     }
   };
 
+  const handleEditAvatarClick = () => {
+    avatarInputRef.current?.click();
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setAvatar(url);
+      // TODO: Gửi file lên server tại đây nếu muốn lưu lại
+    }
+  };
+
   return (
     <MainLayout>
-      <div className="mx-auto max-w-4xl">
+      <div
+        className={`mx-auto max-w-4xl ${
+          theme === "dark" ? "dark bg-gray-900 text-white" : ""
+        }`}
+      >
         {/* Cover & Profile Section */}
         <div className="relative mb-6 overflow-hidden rounded-xl bg-white shadow-sm">
           {/* Cover Image */}
@@ -157,16 +184,28 @@ export default function ProfilePage() {
             {/* Avatar */}
             <div className="relative -mt-16 mb-4 inline-block">
               <Image
-                src={userData.avatar}
+                src={avatar}
                 alt={`${userData.firstName} ${userData.lastName}`}
                 width={128}
                 height={128}
                 className="h-32 w-32 rounded-full border-4 border-white object-cover shadow-lg"
               />
               {userData.isOwnProfile && (
-                <button className="absolute bottom-2 right-2 rounded-full bg-[#f9622e] p-2 text-white shadow-lg transition-colors hover:bg-[#e0501e]">
-                  <Camera className="h-4 w-4" />
-                </button>
+                <>
+                  <button
+                    className="absolute bottom-2 right-2 rounded-full bg-[#f9622e] p-2 text-white shadow-lg transition-colors hover:bg-[#e0501e]"
+                    onClick={handleEditAvatarClick}
+                  >
+                    <Camera className="h-4 w-4" />
+                  </button>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={avatarInputRef}
+                    style={{ display: "none" }}
+                    onChange={handleAvatarChange}
+                  />
+                </>
               )}
             </div>
 
@@ -242,11 +281,17 @@ export default function ProfilePage() {
               <div className="flex gap-2">
                 {userData.isOwnProfile ? (
                   <>
-                    <button className="flex items-center gap-2 rounded-lg bg-[#f9622e] px-4 py-2 text-white transition-colors hover:bg-[#e0501e]">
+                    <button
+                      className="flex items-center gap-2 rounded-lg bg-[#f9622e] px-4 py-2 text-white transition-colors hover:bg-[#e0501e]"
+                      onClick={() => setShowEditProfile(true)}
+                    >
                       <Edit3 className="h-4 w-4" />
                       Edit Profile
                     </button>
-                    <button className="rounded-lg bg-gray-100 p-2 text-gray-600 transition-colors hover:bg-gray-200">
+                    <button
+                      className="rounded-lg bg-gray-100 p-2 text-gray-600 transition-colors hover:bg-gray-200"
+                      onClick={() => setShowSettings(true)}
+                    >
                       <Settings className="h-4 w-4" />
                     </button>
                   </>
@@ -276,7 +321,6 @@ export default function ProfilePage() {
         <div className="mb-6 rounded-xl bg-white shadow-sm">
           <div className="flex border-b border-gray-200">
             {[
-              { key: "posts", label: "Posts", count: userData.stats.posts },
               { key: "about", label: "About" },
               { key: "photos", label: "Photos", count: 12 },
             ].map((tab) => (
@@ -430,6 +474,77 @@ export default function ProfilePage() {
                   />
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {showEditProfile && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="rounded-xl bg-white p-6 shadow-lg w-full max-w-md">
+              <h2 className="mb-4 text-xl font-bold text-gray-900">
+                Edit Profile
+              </h2>
+              <div className="mb-4">
+                <label className="block mb-1 font-medium">Name</label>
+                <input
+                  className="w-full rounded border px-3 py-2"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block mb-1 font-medium">Bio</label>
+                <textarea
+                  className="w-full rounded border px-3 py-2"
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  className="rounded px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  onClick={() => setShowEditProfile(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="rounded px-4 py-2 bg-[#f9622e] text-white hover:bg-[#e0501e]"
+                  onClick={() => setShowEditProfile(false)}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showSettings && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="rounded-xl bg-white p-6 shadow-lg w-full max-w-md dark:bg-gray-800 dark:text-white">
+              <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">
+                Settings
+              </h2>
+              {/* Các chức năng cài đặt */}
+              <div className="mb-4 flex flex-col gap-3">
+                <button className="w-full rounded bg-gray-100 px-4 py-2 text-left text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">
+                  Đổi mật khẩu
+                </button>
+                <button className="w-full rounded bg-gray-100 px-4 py-2 text-left text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">
+                  Thông báo
+                </button>
+                <button className="w-full rounded bg-gray-100 px-4 py-2 text-left text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">
+                  Ngôn ngữ
+                </button>
+                <button className="w-full rounded bg-red-100 px-4 py-2 text-left text-red-600 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-700">
+                  Đăng xuất
+                </button>
+              </div>
+              <button
+                className="mt-4 rounded px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                onClick={() => setShowSettings(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         )}
