@@ -241,7 +241,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
               <h2 className="text-xl font-bold text-gray-900">Tạo bài viết</h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-gray-100 p-2 text-gray-500 hover:bg-gray-200 transition-colors"
+                className="absolute cursor-pointer right-4 top-1/2 -translate-y-1/2 rounded-full bg-gray-100 p-2 text-gray-500 hover:bg-gray-200 transition-colors"
               >
                 <X size={20} />
               </button>
@@ -409,7 +409,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
             <div className="border-t border-gray-100 p-4">
               <button
                 onClick={handlePost}
-                className="w-full rounded-lg bg-[#f9622e] py-2 font-semibold text-white transition-colors hover:bg-[#d84e1e] disabled:bg-gray-300 disabled:text-gray-500"
+                className="w-full rounded-lg cursor-pointer bg-[#f9622e] py-2 font-semibold text-white transition-colors hover:bg-[#d84e1e] disabled:bg-gray-300 disabled:text-gray-500"
               >
                 Đăng
               </button>
