@@ -128,7 +128,7 @@ export function PostCard({
 
     const newComment: Comment = {
       id: Date.now().toString(),
-      author: { name: "Tôi", avatar: "/userAvatar.png" }, // Replace with actual current user
+      author: { name: "Bạn", avatar: "/userAvatar.png" }, 
       content: commentText,
       timestamp: "Vừa xong",
     };
@@ -270,7 +270,7 @@ export function PostCard({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-2">
+      <div className="flex items-center justify-between border-t border-gray-300 pt-3 mt-2">
         <div className="flex items-center gap-6">
           {/* Like Button */}
           <button
@@ -338,7 +338,7 @@ export function PostCard({
 
       {/* Comment Section */}
       {showComments && (
-        <div className="mt-4 pt-4 border-t border-gray-100 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="mt-3.5 pt-3.5 border-t border-gray-300 animate-in fade-in slide-in-from-top-2 duration-300">
           {/* Comment Input */}
           <div className="flex gap-3 mb-6">
             <Image
@@ -380,7 +380,7 @@ export function PostCard({
                 />
                 <div className="flex-1">
                   <div className="bg-gray-50 rounded-2xl rounded-tl-none px-4 py-2 inline-block">
-                    <h5 className="text-sm font-bold text-gray-900 hover:underline cursor-pointer">
+                    <h5 className="text-sm font-bold text-gray-900 hover:underline hover:text-[#f9622e] transition-colors duration-150 cursor-pointer">
                       {comment.author.name}
                     </h5>
                     <p className="text-sm text-gray-800 mt-0.5">{comment.content}</p>

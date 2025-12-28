@@ -13,6 +13,10 @@ interface Message {
   isOwn: boolean;
   avatar?: string;
   senderName?: string;
+  attachment?: {
+    type: "image" | "video";
+    url: string;
+  };
 }
 
 export default function MessagesPage() {
@@ -60,7 +64,15 @@ export default function MessagesPage() {
     setMessages(fakeMessages);
   }, [name, avatar]);
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = (content: string, file?: File | null) => {
+    let attachment;
+    if (file) {
+      attachment = {
+        type: file.type.startsWith("video/") ? "video" : "image",
+        url: URL.createObjectURL(file), // Tạo URL tạm thời cho file
+      } as const;
+    }
+
     const newMessage: Message = {
       id: Date.now().toString(),
       content,
@@ -69,6 +81,7 @@ export default function MessagesPage() {
         minute: "2-digit",
       }),
       isOwn: true,
+      attachment,
     };
     setMessages([...messages, newMessage]);
   };
@@ -94,6 +107,7 @@ export default function MessagesPage() {
               isOwn={message.isOwn}
               avatar={message.avatar}
               senderName={message.senderName}
+              attachment={message.attachment}
             />
           ))}
           <div ref={messagesEndRef} />

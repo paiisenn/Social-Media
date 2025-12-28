@@ -7,18 +7,14 @@ import {
   Calendar,
   Link as LinkIcon,
   Edit3,
-  Settings,
   MoreHorizontal,
-  Users,
   UserPlus,
   MessageCircle,
   UserCheck,
-  Globe,
-  Lock,
   Image as ImageIcon,
   Video,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import MainLayout from "@/app/main/layout";
 import { CreatePostProfile } from "@/components/post/CreatePostProfile";
 import { PostCard } from "@/components/post/PostCard";
@@ -35,11 +31,11 @@ const userData = {
     "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=1200&h=400&fit=crop",
   location: "TP.Ho Chi Minh, Vietnam",
   website: "https://purephat.dev",
-  joinDate: "2023-01-15",
+  joinDate: "2024-01-15",
   stats: {
     posts: 29,
     followers: 380,
-    following: 128,
+    following: 12800,
   },
   isFollowing: false,
   isOwnProfile: true,
@@ -112,17 +108,33 @@ function formatStatNumber(num: number): string {
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<
-    "posts" | "about" | "friends" | "photos" | "videos"
+    "posts" | "friends" | "photos" | "videos"
   >("posts");
   const [isFollowing, setIsFollowing] = useState(userData.isFollowing);
+
+  // Define profile data states
   const [coverImage, setCoverImage] = useState(userData.coverImage);
   const [avatar, setAvatar] = useState(userData.avatar);
+  const [bio, setBio] = useState(userData.bio);
+  const [location, setLocation] = useState(userData.location);
+  const [website, setWebsite] = useState(userData.website);
+
+  // Editing states
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedBio, setEditedBio] = useState(userData.bio);
+  const [editedLocation, setEditedLocation] = useState(userData.location);
+  const [editedWebsite, setEditedWebsite] = useState(userData.website);
+
   const [posts, setPosts] = useState(mockPosts);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
 
   const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  // Refs và state cho hiệu ứng underline của tabs
+  const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
+  const [tabUnderlineStyle, setTabUnderlineStyle] = useState({ left: 0, width: 0 });
 
   const handleFollow = () => {
     setIsFollowing(!isFollowing);
@@ -138,6 +150,22 @@ export default function ProfilePage() {
       const url = URL.createObjectURL(file);
       setCoverImage(url);
     }
+  };
+
+  const handleSaveProfile = () => {
+    // Save changes
+    setBio(editedBio);
+    setLocation(editedLocation);
+    setWebsite(editedWebsite);
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    // Revert changes
+    setEditedBio(bio);
+    setEditedLocation(location);
+    setEditedWebsite(website);
+    setIsEditing(false);
   };
 
   const handleEditAvatarClick = () => {
@@ -201,17 +229,24 @@ export default function ProfilePage() {
   };
 
   const tabs = [
-    { key: "posts", label: "Posts", icon: null },
-    { key: "about", label: "About", icon: null },
+    { key: "posts", label: "Bài đăng", icon: null },
     {
       key: "friends",
-      label: "Friends",
+      label: "Bạn bè",
       icon: null,
       count: userData.stats.followers,
     },
-    { key: "photos", label: "Photos", icon: null, count: 12 },
-    { key: "videos", label: "Videos", icon: null, count: 3 },
+    { key: "photos", label: "Ảnh", icon: null, count: 12 },
+    { key: "videos", label: "Video", icon: null, count: 3 },
   ];
+
+  useEffect(() => {
+    const activeTabIndex = tabs.findIndex((tab) => tab.key === activeTab);
+    const currentTab = tabsRef.current[activeTabIndex];
+    if (currentTab) {
+      setTabUnderlineStyle({ left: currentTab.offsetLeft, width: currentTab.offsetWidth });
+    }
+  }, [activeTab]);
 
   return (
     <MainLayout>
@@ -219,7 +254,7 @@ export default function ProfilePage() {
         {/* Cover Photo Section */}
         <div className="relative mb-4 overflow-hidden rounded-lg bg-white shadow-sm">
           {/* Cover Image */}
-          <div className="relative h-80 bg-gradient-to-r from-[#f9622e] to-[#ff8a50]">
+          <div className="relative h-80 bg-linear-to-r from-[#f9622e] to-[#ff8a50]">
             {coverImage && (
               <Image
                 src={coverImage}
@@ -228,10 +263,10 @@ export default function ProfilePage() {
                 className="object-cover"
               />
             )}
-            {userData.isOwnProfile && (
+            {userData.isOwnProfile && isEditing && (
               <>
                 <button
-                  className="absolute bottom-4 right-4 flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-lg transition-colors hover:bg-gray-50"
+                  className="absolute bottom-4 right-4 flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-lg transition-colors hover:bg-gray-50"
                   onClick={handleEditCoverClick}
                 >
                   <Camera className="h-4 w-4" />
@@ -259,10 +294,10 @@ export default function ProfilePage() {
                 height={160}
                 className="h-40 w-40 rounded-full border-4 border-white object-cover shadow-lg"
               />
-              {userData.isOwnProfile && (
+              {userData.isOwnProfile && isEditing && (
                 <>
                   <button
-                    className="absolute bottom-2 right-2 rounded-full bg-gray-100 p-2 text-gray-600 shadow-lg transition-colors hover:bg-gray-200"
+                    className="absolute bottom-2 right-2 cursor-pointer rounded-full bg-gray-100 p-2 text-gray-600 shadow-lg transition-colors hover:bg-gray-200"
                     onClick={handleEditAvatarClick}
                   >
                     <Camera className="h-5 w-5" />
@@ -278,7 +313,7 @@ export default function ProfilePage() {
               )}
             </div>
 
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex-1">
                 <h1 className="text-3xl font-bold text-gray-900">
                   {userData.firstName} {userData.lastName}
@@ -298,56 +333,74 @@ export default function ProfilePage() {
                   following
                 </div>
 
-                {userData.bio && (
-                  <p className="mb-3 max-w-2xl text-gray-700">{userData.bio}</p>
-                )}
+                {!isEditing && (
+                  <>
+                    {bio && (
+                      <p className="mb-3 max-w-2xl text-gray-700">{bio}</p>
+                    )}
 
-                <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                  {userData.location && (
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
-                      {userData.location}
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-500 flex-col">
+                      {location && (
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          {location}
+                        </div>
+                      )}
+                      {website && (
+                        <div className="flex items-center gap-1">
+                          <LinkIcon className="h-4 w-4" />
+                          <a
+                            href={website}
+                            className="text-[#f9622e] hover:underline"
+                          >
+                            {website.replace("https://", "")}
+                          </a>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        Đã tham gia từ {formatDate(userData.joinDate)}
+                      </div>
                     </div>
-                  )}
-                  {userData.website && (
-                    <div className="flex items-center gap-1">
-                      <LinkIcon className="h-4 w-4" />
-                      <a
-                        href={userData.website}
-                        className="text-[#f9622e] hover:underline"
-                      >
-                        {userData.website.replace("https://", "")}
-                      </a>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    Joined {formatDate(userData.joinDate)}
-                  </div>
-                </div>
+                  </>
+                )}
               </div>
 
               {/* Action Buttons */}
               <div className="flex gap-2">
                 {userData.isOwnProfile ? (
-                  <>
-                    <button className="flex items-center gap-2 rounded-lg bg-[#f9622e] px-4 py-2 font-medium text-white transition-colors hover:bg-[#e0501e]">
+                  isEditing ? (
+                    <>
+                      <button
+                        onClick={handleSaveProfile}
+                        className="flex items-center cursor-pointer gap-2 rounded-lg bg-[#f9622e] px-4 py-2 font-medium text-white transition-colors hover:bg-[#e0501e]"
+                      >
+                        Lưu
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="flex items-center cursor-pointer gap-2 rounded-lg bg-gray-200 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-300"
+                      >
+                        Hủy
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="flex items-center cursor-pointer gap-2 rounded-lg bg-[#f9622e] px-4 py-2 font-medium text-white transition-colors hover:bg-[#e0501e]"
+                    >
                       <Edit3 className="h-4 w-4" />
                       Edit Profile
                     </button>
-                    <button className="rounded-lg bg-gray-100 p-2 text-gray-600 transition-colors hover:bg-gray-200">
-                      <Settings className="h-4 w-4" />
-                    </button>
-                  </>
+                  )
                 ) : (
                   <>
                     <button
                       onClick={handleFollow}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                        isFollowing
-                          ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          : "bg-[#f9622e] text-white hover:bg-[#e0501e]"
-                      }`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${isFollowing
+                        ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        : "bg-[#f9622e] text-white hover:bg-[#e0501e]"
+                        }`}
                     >
                       {isFollowing ? (
                         <>
@@ -373,172 +426,76 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+
+          {/* Editable Profile Inputs (Bio, Location, Website) */}
+          {isEditing && (
+            <div className="px-6 pb-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Bio (Giới thiệu)</label>
+                <textarea
+                  value={editedBio}
+                  onChange={(e) => setEditedBio(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#f9622e] focus:ring-[#f9622e] sm:text-sm p-2 border"
+                  rows={3}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Vị trí</label>
+                  <input
+                    type="text"
+                    value={editedLocation}
+                    onChange={(e) => setEditedLocation(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#f9622e] focus:ring-[#f9622e] sm:text-sm p-2 border"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Website</label>
+                  <input
+                    type="text"
+                    value={editedWebsite}
+                    onChange={(e) => setEditedWebsite(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#f9622e] focus:ring-[#f9622e] sm:text-sm p-2 border"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Navigation Tabs */}
         <div className="mb-6 rounded-lg bg-white shadow-sm">
-          <div className="flex border-b border-gray-200 overflow-x-auto">
-            {tabs.map((tab) => (
+          <div className="relative flex border-b border-gray-200 overflow-x-auto">
+            {tabs.map((tab, index) => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
-                className={`flex items-center gap-2 px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === tab.key
-                    ? "border-b-2 border-[#f9622e] text-[#f9622e]"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
+                ref={(el) => { tabsRef.current[index] = el; }}
+                onClick={() => setActiveTab(tab.key as typeof activeTab)}
+                className={`relative z-10 flex items-center gap-2 px-6 py-4 font-medium transition-all duration-300 whitespace-nowrap hover:bg-gray-50 ${activeTab === tab.key
+                  ? "text-[#f9622e]"
+                  : "text-gray-500 cursor-pointer hover:text-gray-700"
+                  }`}
               >
                 {tab.label}
                 {tab.count && (
-                  <span className="rounded-full bg-gray-100 px-2 py-1 text-xs">
+                  <span className={`rounded-full px-2 py-1 text-xs transition-colors duration-300 ${activeTab === tab.key ? "bg-orange-100 text-[#f9622e]" : "bg-gray-100 text-gray-600"
+                    }`}>
                     {tab.count}
                   </span>
                 )}
               </button>
             ))}
+            <div
+              className="absolute bottom-0 h-0.5 bg-[#f9622e] transition-all duration-300 ease-in-out z-20"
+              style={{ left: tabUnderlineStyle.left, width: tabUnderlineStyle.width }}
+            />
           </div>
         </div>
 
         {/* Content Area */}
-        <div className="flex gap-6">
-          {/* Left Sidebar */}
-          <div className="w-80 shrink-0">
-            <div className="space-y-4">
-              {/* Intro Card */}
-              <div className="rounded-lg bg-white p-4 shadow-sm">
-                <h3 className="mb-3 text-lg font-semibold text-gray-900">
-                  Intro
-                </h3>
-                <div className="space-y-3 text-sm">
-                  {userData.bio && (
-                    <p className="text-gray-700">{userData.bio}</p>
-                  )}
-                  {userData.location && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <MapPin className="h-4 w-4" />
-                      Lives in{" "}
-                      <span className="font-medium">{userData.location}</span>
-                    </div>
-                  )}
-                  {userData.website && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <LinkIcon className="h-4 w-4" />
-                      <a
-                        href={userData.website}
-                        className="text-[#f9622e] hover:underline"
-                      >
-                        {userData.website.replace("https://", "")}
-                      </a>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Calendar className="h-4 w-4" />
-                    Joined {formatDate(userData.joinDate)}
-                  </div>
-                </div>
-                {userData.isOwnProfile && (
-                  <button className="mt-3 w-full rounded-lg bg-gray-100 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200">
-                    Edit details
-                  </button>
-                )}
-              </div>
-
-              {/* Photos Preview */}
-              <div className="rounded-lg bg-white p-4 shadow-sm">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Photos
-                  </h3>
-                  <button className="text-sm text-[#f9622e] hover:underline">
-                    See all photos
-                  </button>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {Array.from({ length: 9 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="aspect-square overflow-hidden rounded-lg bg-gray-100"
-                    >
-                      <Image
-                        src={`https://images.unsplash.com/photo-${
-                          1500000000000 + i
-                        }?w=150&h=150&fit=crop`}
-                        alt={`Photo ${i + 1}`}
-                        width={150}
-                        height={150}
-                        className="h-full w-full object-cover transition-transform hover:scale-105"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Friends Preview */}
-              <div className="rounded-lg bg-white p-4 shadow-sm">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Friends
-                    <span className="ml-2 text-sm font-normal text-gray-500">
-                      {userData.stats.followers}
-                    </span>
-                  </h3>
-                  <button className="text-sm text-[#f9622e] hover:underline">
-                    See all friends
-                  </button>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    {
-                      name: "Nguyễn Văn A",
-                      avatar:
-                        "https://api.dicebear.com/7.x/avataaars/svg?seed=NguyenA",
-                    },
-                    {
-                      name: "Trần Thị B",
-                      avatar:
-                        "https://api.dicebear.com/7.x/avataaars/svg?seed=TranB",
-                    },
-                    {
-                      name: "Lê Minh C",
-                      avatar:
-                        "https://api.dicebear.com/7.x/avataaars/svg?seed=LeMinh",
-                    },
-                    {
-                      name: "Phạm Thị D",
-                      avatar:
-                        "https://api.dicebear.com/7.x/avataaars/svg?seed=PhamD",
-                    },
-                    {
-                      name: "Hoàng Văn E",
-                      avatar:
-                        "https://api.dicebear.com/7.x/avataaars/svg?seed=HoangE",
-                    },
-                    {
-                      name: "Vũ Thị F",
-                      avatar:
-                        "https://api.dicebear.com/7.x/avataaars/svg?seed=VuF",
-                    },
-                  ].map((friend, i) => (
-                    <div key={i} className="text-center">
-                      <Image
-                        src={friend.avatar}
-                        alt={friend.name}
-                        width={80}
-                        height={80}
-                        className="h-20 w-20 rounded-lg object-cover"
-                      />
-                      <p className="mt-1 text-xs font-medium text-gray-900 line-clamp-2">
-                        {friend.name}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
+        <div className={`flex gap-6 ${activeTab !== 'posts' ? 'flex-col' : 'flex-row items-start'}`}>
           {/* Main Content */}
-          <div className="flex-1">
+          <div className={activeTab === "posts" ? "flex-1 min-w-0" : "w-full"}>
             {activeTab === "posts" && (
               <div className="space-y-4">
                 {/* Create Post - Only show if own profile */}
@@ -564,72 +521,28 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {activeTab === "about" && (
-              <div className="rounded-lg bg-white p-6 shadow-sm">
-                <h2 className="mb-4 text-xl font-bold text-gray-900">
-                  About {userData.firstName}
-                </h2>
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="mb-2 font-semibold text-gray-900">Bio</h3>
-                    <p className="text-gray-700">{userData.bio}</p>
-                  </div>
-                  <div>
-                    <h3 className="mb-2 font-semibold text-gray-900">
-                      Contact Info
-                    </h3>
-                    <div className="space-y-2">
-                      {userData.location && (
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <MapPin className="h-4 w-4" />
-                          <span>Lives in {userData.location}</span>
-                        </div>
-                      )}
-                      {userData.website && (
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <LinkIcon className="h-4 w-4" />
-                          <a
-                            href={userData.website}
-                            className="text-[#f9622e] hover:underline"
-                          >
-                            {userData.website}
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="mb-2 font-semibold text-gray-900">
-                      Basic Info
-                    </h3>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Calendar className="h-4 w-4" />
-                      <span>Joined {formatDate(userData.joinDate)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {activeTab === "friends" && (
-              <div className="rounded-lg bg-white p-6 shadow-sm">
+              <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
                 <h2 className="mb-4 text-xl font-bold text-gray-900">
                   Friends ({userData.stats.followers})
                 </h2>
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                   {Array.from({ length: 12 }).map((_, i) => (
-                    <div key={i} className="rounded-lg border p-3 text-center">
+                    <div key={i} className="rounded-lg border border-gray-100 p-3 text-center transition-shadow hover:shadow-md">
                       <Image
                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Friend${i}`}
                         alt={`Friend ${i + 1}`}
-                        width={80}
-                        height={80}
-                        className="mx-auto h-20 w-20 rounded-lg object-cover"
+                        width={100}
+                        height={100}
+                        className="mx-auto h-24 w-24 rounded-full object-cover bg-gray-50"
                       />
-                      <p className="mt-2 font-medium text-gray-900">
+                      <p className="mt-3 font-semibold text-gray-900">
                         Friend {i + 1}
                       </p>
                       <p className="text-sm text-gray-500">5 mutual friends</p>
+                      <button className="mt-3 w-full rounded-md bg-blue-50 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-100 transition-colors">
+                        Message
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -637,22 +550,21 @@ export default function ProfilePage() {
             )}
 
             {activeTab === "photos" && (
-              <div className="rounded-lg bg-white p-6 shadow-sm">
+              <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
                 <h2 className="mb-4 text-xl font-bold text-gray-900">Photos</h2>
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                  {Array.from({ length: 16 }).map((_, i) => (
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+                  {Array.from({ length: 12 }).map((_, i) => (
                     <div
                       key={i}
-                      className="aspect-square overflow-hidden rounded-lg bg-gray-100"
+                      className="aspect-square overflow-hidden rounded-lg bg-gray-100 border border-gray-200 cursor-pointer group"
                     >
                       <Image
-                        src={`https://images.unsplash.com/photo-${
-                          1500000000000 + i
-                        }?w=300&h=300&fit=crop`}
+                        src={`https://images.unsplash.com/photo-${1500000000000 + i
+                          }?w=300&h=300&fit=crop`}
                         alt={`Photo ${i + 1}`}
                         width={300}
                         height={300}
-                        className="h-full w-full object-cover transition-transform hover:scale-105"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                       />
                     </div>
                   ))}
@@ -661,26 +573,25 @@ export default function ProfilePage() {
             )}
 
             {activeTab === "videos" && (
-              <div className="rounded-lg bg-white p-6 shadow-sm">
+              <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
                 <h2 className="mb-4 text-xl font-bold text-gray-900">Videos</h2>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {Array.from({ length: 6 }).map((_, i) => (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
                     <div
                       key={i}
-                      className="relative aspect-video overflow-hidden rounded-lg bg-gray-100"
+                      className="relative aspect-video overflow-hidden rounded-lg bg-gray-100 border border-gray-200 group cursor-pointer"
                     >
                       <Image
-                        src={`https://images.unsplash.com/photo-${
-                          1600000000000 + i
-                        }?w=400&h=225&fit=crop`}
+                        src={`https://images.unsplash.com/photo-${1600000000000 + i
+                          }?w=400&h=225&fit=crop`}
                         alt={`Video ${i + 1}`}
                         width={400}
                         height={225}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                        <div className="rounded-full bg-white/90 p-3">
-                          <Video className="h-6 w-6 text-gray-700" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                        <div className="rounded-full bg-white/90 p-3 shadow-lg transform group-hover:scale-110 transition-transform">
+                          <Video className="h-6 w-6 text-gray-900" />
                         </div>
                       </div>
                     </div>
