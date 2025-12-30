@@ -3,9 +3,14 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Mail, Eye, EyeOff, User, CheckSquare } from "lucide-react";
+import { Mail, Eye, EyeOff, User, CheckSquare, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/context/ToastContext";
 
 export default function RegisterPage() {
+    const router = useRouter();
+    const { toast } = useToast();
+    const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -21,8 +26,20 @@ export default function RegisterPage() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("Register attempt:", formData);
-        // Add register logic here
+        setIsLoading(true);
+
+        if (formData.password !== formData.confirmPassword) {
+            toast("Mật khẩu xác nhận không khớp!", "error");
+            setIsLoading(false);
+            return;
+        }
+
+        // Simulate API call
+        setTimeout(() => {
+            setIsLoading(false);
+            toast("Đăng ký thành công! Vui lòng đăng nhập.", "success");
+            setTimeout(() => router.push("/login"), 1500);
+        }, 1500);
     };
 
     const Year = new Date().getFullYear();
@@ -219,13 +236,21 @@ export default function RegisterPage() {
                         {/* Register Button */}
                         <button
                             type="submit"
-                            disabled={!agreedToTerms}
-                            className={`w-full rounded-xl py-3.5 text-sm font-bold text-white shadow-lg transition-all active:translate-y-0 cursor-pointer mt-4 ${agreedToTerms
-                                ? "bg-[#f9622e] shadow-orange-500/30 hover:bg-[#ff7240] hover:shadow-orange-500/40 hover:-translate-y-0.5"
-                                : "bg-gray-300 shadow-none cursor-not-allowed"
+                            disabled={!agreedToTerms || isLoading}
+                            className={`w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-lg transition-all mt-4 
+                            ${agreedToTerms && !isLoading
+                                    ? "bg-[#f9622e] shadow-orange-500/30 hover:bg-[#ff7240] hover:shadow-orange-500/40 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                                    : "bg-gray-300 shadow-none cursor-not-allowed opacity-70"
                                 }`}
                         >
-                            Đăng ký
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    Đang đăng ký...
+                                </>
+                            ) : (
+                                "Đăng ký"
+                            )}
                         </button>
                     </form>
 

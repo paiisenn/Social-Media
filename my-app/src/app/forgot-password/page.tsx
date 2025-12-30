@@ -3,17 +3,25 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Mail, ArrowLeft, Send } from "lucide-react";
+import { Mail, ArrowLeft, Send, Loader2 } from "lucide-react";
+
+import { useToast } from "@/context/ToastContext";
 
 export default function ForgotPasswordPage() {
+    const { toast } = useToast();
     const [email, setEmail] = useState("");
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("Reset password attempt for:", email);
-        // Add reset password API call here
-        setIsSubmitted(true);
+        setIsLoading(true);
+        // Simulate API call
+        setTimeout(() => {
+            setIsLoading(false);
+            toast("Đã gửi email khôi phục mật khẩu! Vui lòng kiểm tra hộp thư.", "success");
+            setIsSubmitted(true);
+        }, 1500);
     };
 
     const Year = new Date().getFullYear();
@@ -96,11 +104,20 @@ export default function ForgotPasswordPage() {
                                 {/* Submit Button */}
                                 <button
                                     type="submit"
-                                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#f9622e] py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/30 transition-all hover:bg-[#ff7240] hover:shadow-orange-500/40 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
-                                    disabled={!email}
+                                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#f9622e] py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/30 transition-all hover:bg-[#ff7240] hover:shadow-orange-500/40 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                                    disabled={!email || isLoading}
                                 >
-                                    Gửi yêu cầu
-                                    <Send className="h-4 w-4" />
+                                    {isLoading ? (
+                                        <>
+                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                            Đang gửi...
+                                        </>
+                                    ) : (
+                                        <>
+                                            Gửi yêu cầu
+                                            <Send className="h-4 w-4" />
+                                        </>
+                                    )}
                                 </button>
                             </form>
                         </>

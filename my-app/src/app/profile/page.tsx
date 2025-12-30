@@ -126,8 +126,6 @@ export default function ProfilePage() {
   const [editedWebsite, setEditedWebsite] = useState(userData.website);
 
   const [posts, setPosts] = useState(mockPosts);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [postToDelete, setPostToDelete] = useState<string | null>(null);
 
   const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -204,16 +202,7 @@ export default function ProfilePage() {
   };
 
   const handleDeletePost = (postId: string) => {
-    setPostToDelete(postId);
-    setIsDeleteModalOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (postToDelete) {
-      setPosts(posts.filter((post) => post.id !== postToDelete));
-      setPostToDelete(null);
-      setIsDeleteModalOpen(false);
-    }
+    setPosts(posts.filter((post) => post.id !== postId));
   };
 
   const handleEditPost = (postId: string, newContent: string) => {
@@ -602,34 +591,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Delete Confirmation Modal */}
-        {isDeleteModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 animate-in fade-in zoom-in duration-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Xác nhận xóa bài viết?
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Hành động này không thể hoàn tác. Bài viết sẽ bị xóa vĩnh viễn
-                khỏi profile của bạn.
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setIsDeleteModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
-                >
-                  Xóa
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </MainLayout>
   );

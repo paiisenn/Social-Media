@@ -14,6 +14,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import { useToast } from "@/context/ToastContext";
 
 interface CreatePostProps {
   onCreatePost?: (postData: {
@@ -24,6 +25,7 @@ interface CreatePostProps {
 }
 
 export function CreatePost({ onCreatePost }: CreatePostProps) {
+  const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<{
     url: string;
@@ -131,12 +133,18 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
   };
 
   const handlePost = () => {
+    if (!content.trim() && !selectedMedia) {
+      toast("Nội dung bài viết không được để trống!", "error");
+      return;
+    }
+
     if (onCreatePost) {
       onCreatePost({
         content,
         media: selectedMedia,
         privacy,
       });
+      toast("Đăng bài viết thành công!", "success");
     }
     // Reset form
     setContent("");
@@ -209,11 +217,10 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
               className="relative h-48 w-32 shrink-0 cursor-pointer overflow-hidden rounded-xl bg-gray-200 transition hover:opacity-90"
             >
               <div
-                className={`h-full w-full bg-linear-to-b ${
-                  i % 2 === 0
-                    ? "from-purple-500 to-pink-500"
-                    : "from-yellow-400 to-orange-500"
-                }`}
+                className={`h-full w-full bg-linear-to-b ${i % 2 === 0
+                  ? "from-purple-500 to-pink-500"
+                  : "from-yellow-400 to-orange-500"
+                  }`}
               />
               <div className="absolute top-3 left-3 h-10 w-10 rounded-full border-4 border-blue-500 bg-gray-300" />
               <div className="absolute bottom-3 left-3 text-xs font-medium text-white drop-shadow-md">
@@ -249,11 +256,10 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
 
             {/* Body */}
             <div
-              className={`flex-1 overflow-y-auto p-4 ${
-                isDragging
-                  ? "bg-blue-50 border-2 border-dashed border-blue-400"
-                  : ""
-              }`}
+              className={`flex-1 overflow-y-auto p-4 ${isDragging
+                ? "bg-blue-50 border-2 border-dashed border-blue-400"
+                : ""
+                }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
@@ -296,11 +302,10 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                                 setPrivacy(key);
                                 setIsPrivacyOpen(false);
                               }}
-                              className={`flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 ${
-                                privacy === key
-                                  ? "bg-blue-50 text-blue-600"
-                                  : "text-gray-700"
-                              }`}
+                              className={`flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 ${privacy === key
+                                ? "bg-blue-50 text-blue-600"
+                                : "text-gray-700"
+                                }`}
                             >
                               <OptionIcon size={14} />
                               {privacyOptions[key].label}
@@ -314,11 +319,10 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                 {/* Character Counter */}
                 <div className="ml-auto flex flex-col items-end justify-center">
                   <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
-                      remainingChars === 0
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-100"
-                    }`}
+                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${remainingChars === 0
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-100"
+                      }`}
                   >
                     <span className={`text-sm font-bold ${getCounterColor()}`}>
                       {remainingChars}
@@ -340,7 +344,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
               {/* Image Preview */}
               {selectedMedia && (
                 <div className="relative mt-3 rounded-xl border border-gray-200 p-2">
-                  <div className="relative max-h-60 overflow-hidden rounded-lg bg-black">
+                  <div className="relative max-h-80 overflow-hidden rounded-lg bg-black">
                     {selectedMedia.type === "video" ? (
                       <video
                         src={selectedMedia.url}
@@ -356,7 +360,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                     )}
                     <button
                       onClick={() => setSelectedMedia(null)}
-                      className="absolute right-2 top-2 z-10 rounded-full bg-white/80 p-1 text-gray-600 hover:bg-white shadow-sm"
+                      className="absolute cursor-pointer right-2 top-2 z-10 rounded-full bg-white/80 p-1 text-gray-600 hover:bg-white shadow-sm"
                     >
                       <X size={16} />
                     </button>
@@ -372,13 +376,13 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                 <div className="flex gap-1">
                   <button
                     onClick={handleImageClick}
-                    className="rounded-full p-2 text-green-500 hover:bg-gray-100"
+                    className="rounded-full cursor-pointer p-2 text-green-500 hover:bg-gray-100"
                     title="Ảnh/Video"
                   >
                     <ImageIcon size={24} />
                   </button>
                   <button
-                    className="rounded-full p-2 text-blue-500 hover:bg-gray-100"
+                    className="rounded-full cursor-pointer p-2 text-blue-500 hover:bg-gray-100"
                     title="Gắn thẻ người khác"
                   >
                     <Plus size={24} />
@@ -386,7 +390,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                   <div className="relative" ref={emojiPickerRef}>
                     <button
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      className="rounded-full p-2 text-yellow-500 hover:bg-gray-100"
+                      className="rounded-full cursor-pointer p-2 text-yellow-500 hover:bg-gray-100"
                       title="Cảm xúc/Hoạt động"
                     >
                       <Smile size={24} />

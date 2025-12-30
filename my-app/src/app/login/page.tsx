@@ -3,9 +3,14 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Mail, Eye, EyeOff, KeyRound } from "lucide-react";
+import { Mail, Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/context/ToastContext";
 
 export default function LoginPage() {
+    const router = useRouter();
+    const { toast } = useToast();
+    const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({
         email: "",
@@ -13,10 +18,22 @@ export default function LoginPage() {
         rememberMe: false,
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("Login attempt:", formData);
-        // Add login logic here
+        setIsLoading(true);
+
+        // Simulate API call
+        setTimeout(() => {
+            setIsLoading(false);
+
+            // Mock validation/auth logic
+            if (formData.email === "admin@gmail.com" && formData.password === "123456") {
+                toast("Đăng nhập thành công! Đang chuyển hướng...", "success");
+                setTimeout(() => router.push("/main/home"), 1000);
+            } else {
+                toast("Email hoặc mật khẩu không chính xác!", "error");
+            }
+        }, 1500);
     };
 
     const Year = new Date().getFullYear();
@@ -147,9 +164,17 @@ export default function LoginPage() {
                         {/* Login Button */}
                         <button
                             type="submit"
-                            className="w-full rounded-xl bg-[#f9622e] py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/30 transition-all hover:bg-[#ff7240] hover:shadow-orange-500/40 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                            disabled={isLoading}
+                            className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#f9622e] py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/30 transition-all hover:bg-[#ff7240] hover:shadow-orange-500/40 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                         >
-                            Đăng nhập
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    Đang đăng nhập...
+                                </>
+                            ) : (
+                                "Đăng nhập"
+                            )}
                         </button>
 
                         {/* Social Login Separator */}

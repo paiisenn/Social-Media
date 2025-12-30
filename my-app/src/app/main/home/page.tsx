@@ -70,10 +70,7 @@ export default function HomePage() {
     },
   ]);
 
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [postToDelete, setPostToDelete] = useState<string | null>(null);
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [reportReason, setReportReason] = useState("Spam");
+  // Modal states removed as PostCard handles confirmation internally
 
   const handleCreatePost = (postData: {
     content: string;
@@ -98,16 +95,7 @@ export default function HomePage() {
   };
 
   const handleDeletePost = (postId: string) => {
-    setPostToDelete(postId);
-    setIsDeleteModalOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (postToDelete) {
-      setPosts(posts.filter((post) => post.id !== postToDelete));
-      setPostToDelete(null);
-      setIsDeleteModalOpen(false);
-    }
+    setPosts(posts.filter((post) => post.id !== postId));
   };
 
   const handleEditPost = (postId: string, newContent: string) => {
@@ -119,12 +107,7 @@ export default function HomePage() {
   };
 
   const handleReportPost = (postId: string) => {
-    setIsReportModalOpen(true);
-  };
-
-  const confirmReport = () => {
-    setIsReportModalOpen(false);
-    alert("Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét bài viết này.");
+    console.log("Reported post:", postId);
   };
 
   return (
@@ -146,78 +129,7 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 animate-in fade-in zoom-in duration-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Xác nhận xóa bài viết?
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Hành động này không thể hoàn tác. Bài viết sẽ bị xóa vĩnh viễn khỏi dòng thời gian của bạn.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
-              >
-                Xóa
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Report Modal */}
-      {isReportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 animate-in fade-in zoom-in duration-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Báo cáo bài viết
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Hãy chọn lý do bạn muốn báo cáo bài viết này:
-            </p>
-
-            <div className="space-y-2 mb-6">
-              {['Spam', 'Nội dung không phù hợp', 'Bạo lực', 'Thông tin sai lệch'].map((reason) => (
-                <label key={reason} className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-50 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="reportReason"
-                    value={reason}
-                    checked={reportReason === reason}
-                    onChange={(e) => setReportReason(e.target.value)}
-                    className="text-[#f9622e] focus:ring-[#f9622e]"
-                  />
-                  <span className="text-sm text-gray-700">{reason}</span>
-                </label>
-              ))}
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setIsReportModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={confirmReport}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
-              >
-                Gửi báo cáo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modals removed */}
     </div>
   );
 }

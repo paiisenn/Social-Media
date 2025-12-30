@@ -61,6 +61,7 @@ export default function MessagesPage() {
         senderName: name,
       },
     ];
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMessages(fakeMessages);
   }, [name, avatar]);
 
