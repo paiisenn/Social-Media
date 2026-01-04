@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Mail, Eye, EyeOff, User, CheckSquare, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
+import { authAPI } from "@/services/api";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -24,29 +25,68 @@ export default function RegisterPage() {
         confirmPassword: "",
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
 
+        // Validate password match
         if (formData.password !== formData.confirmPassword) {
             toast("Mật khẩu xác nhận không khớp!", "error");
             setIsLoading(false);
             return;
         }
 
-        // Simulate API call
-        setTimeout(() => {
+        // Validate password length
+        if (formData.password.length < 6) {
+            toast("Mật khẩu phải có ít nhất 6 ký tự!", "error");
             setIsLoading(false);
-            toast("Đăng ký thành công! Vui lòng đăng nhập.", "success");
-            setTimeout(() => router.push("/login"), 1500);
-        }, 1500);
+            return;
+        }
+
+        try {
+            // Gọi API đăng ký
+            const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+
+            const response = await authAPI.register({
+                email: formData.email,
+                password: formData.password,
+                name: fullName || formData.displayName, // Dùng fullName, nếu rỗng thì dùng displayName
+            });
+
+            // Lưu token vào localStorage
+            localStorage.setItem('access_token', response.access_token);
+            localStorage.setItem('user', JSON.stringify(response.user));
+
+            toast("Đăng ký thành công! Chào mừng bạn đến với SocialzZz 🎉", "success");
+
+            // Chuyển hướng đến trang chủ sau 1.5s
+            setTimeout(() => {
+                router.push("/");
+            }, 1500);
+
+        } catch (error: any) {
+            console.error('Registration error:', error);
+
+            // Xử lý các loại lỗi khác nhau
+            if (error.message.includes('Email already exists') ||
+                error.message.includes('already')) {
+                toast("Email đã được sử dụng. Vui lòng chọn email khác!", "error");
+            } else if (error.message.includes('network') ||
+                error.message.includes('fetch')) {
+                toast("Lỗi kết nối! Vui lòng kiểm tra internet của bạn.", "error");
+            } else {
+                toast(error.message || "Đăng ký thất bại! Vui lòng thử lại.", "error");
+            }
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const Year = new Date().getFullYear();
 
     return (
         <div className="flex min-h-screen w-full bg-gray-50">
-            {/* Left Side - Brand/Logo (Exactly the same as Login) */}
+            {/* Left Side - Brand/Logo */}
             <div className="hidden w-1/2 h-screen flex-col items-center justify-center bg-white p-6 lg:flex relative overflow-hidden">
                 {/* Decorative Background Elements */}
                 <div className="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-[#f9622e]/10 blur-3xl" />
@@ -102,7 +142,9 @@ export default function RegisterPage() {
                     <form onSubmit={handleSubmit} className="space-y-3.5">
                         {/* Display Name Input */}
                         <div className="space-y-2">
-                            <label className="text-sm font-bold text-gray-700" htmlFor="displayName">Tên hiển thị</label>
+                            <label className="text-sm font-bold text-gray-700" htmlFor="displayName">
+                                Tên hiển thị
+                            </label>
                             <div className="relative group">
                                 <input
                                     id="displayName"
@@ -117,27 +159,29 @@ export default function RegisterPage() {
                             </div>
                         </div>
 
-                        {/* Name Fields: First Name (25%) & Last Name (75%) */}
+                        {/* Name Fields: First Name & Last Name */}
                         <div className="flex gap-4">
                             <div className="w-2/4 space-y-2">
-                                <label className="text-sm font-bold text-gray-700" htmlFor="firstName">Họ</label>
+                                <label className="text-sm font-bold text-gray-700" htmlFor="firstName">
+                                    Họ
+                                </label>
                                 <input
                                     id="firstName"
                                     type="text"
                                     placeholder="Họ"
-                                    required
                                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-[#f9622e] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#f9622e]/10 transition-all duration-200 font-medium"
                                     value={formData.firstName}
                                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                                 />
                             </div>
                             <div className="w-2/4 space-y-2">
-                                <label className="text-sm font-bold text-gray-700" htmlFor="lastName">Tên</label>
+                                <label className="text-sm font-bold text-gray-700" htmlFor="lastName">
+                                    Tên
+                                </label>
                                 <input
                                     id="lastName"
                                     type="text"
                                     placeholder="Tên của bạn"
-                                    required
                                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-[#f9622e] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#f9622e]/10 transition-all duration-200 font-medium"
                                     value={formData.lastName}
                                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
@@ -147,7 +191,9 @@ export default function RegisterPage() {
 
                         {/* Email Input */}
                         <div className="space-y-2">
-                            <label className="text-sm font-bold text-gray-700" htmlFor="email">Email</label>
+                            <label className="text-sm font-bold text-gray-700" htmlFor="email">
+                                Email
+                            </label>
                             <div className="relative group">
                                 <input
                                     id="email"
@@ -164,13 +210,16 @@ export default function RegisterPage() {
 
                         {/* Password Input */}
                         <div className="space-y-2">
-                            <label className="text-sm font-bold text-gray-700" htmlFor="password">Mật khẩu</label>
+                            <label className="text-sm font-bold text-gray-700" htmlFor="password">
+                                Mật khẩu
+                            </label>
                             <div className="relative group">
                                 <input
                                     id="password"
                                     type={showPassword ? "text" : "password"}
-                                    placeholder="Nhập mật khẩu"
+                                    placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
                                     required
+                                    minLength={6}
                                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pr-12 text-gray-900 placeholder:text-gray-400 focus:border-[#f9622e] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#f9622e]/10 transition-all duration-200 font-medium"
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -191,7 +240,9 @@ export default function RegisterPage() {
 
                         {/* Confirm Password Input */}
                         <div className="space-y-2">
-                            <label className="text-sm font-bold text-gray-700" htmlFor="confirmPassword">Xác nhận mật khẩu</label>
+                            <label className="text-sm font-bold text-gray-700" htmlFor="confirmPassword">
+                                Xác nhận mật khẩu
+                            </label>
                             <div className="relative group">
                                 <input
                                     id="confirmPassword"
@@ -229,7 +280,15 @@ export default function RegisterPage() {
                                 <CheckSquare className="pointer-events-none absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
                             </div>
                             <label htmlFor="terms" className="text-sm font-medium text-gray-600 cursor-pointer select-none">
-                                Tôi đồng ý với <Link href="/terms" className="font-bold text-[#f9622e] hover:underline">Điều khoản dịch vụ</Link> và <Link href="/privacy" className="font-bold text-[#f9622e] hover:underline">Chính sách bảo mật</Link> của SocialzZz.
+                                Tôi đồng ý với{" "}
+                                <Link href="/terms" className="font-bold text-[#f9622e] hover:underline">
+                                    Điều khoản dịch vụ
+                                </Link>{" "}
+                                và{" "}
+                                <Link href="/privacy" className="font-bold text-[#f9622e] hover:underline">
+                                    Chính sách bảo mật
+                                </Link>{" "}
+                                của SocialzZz.
                             </label>
                         </div>
 
@@ -257,7 +316,10 @@ export default function RegisterPage() {
                     {/* Footer */}
                     <div className="flex items-center justify-center gap-1 text-sm font-medium text-gray-600">
                         <span>Bạn đã có tài khoản?</span>
-                        <Link href="/login" className="font-bold text-[#f9622e] hover:text-[#d04a1b] hover:underline underline-offset-4 transition-colors">
+                        <Link
+                            href="/login"
+                            className="font-bold text-[#f9622e] hover:text-[#d04a1b] hover:underline underline-offset-4 transition-colors"
+                        >
                             Đăng nhập
                         </Link>
                     </div>
