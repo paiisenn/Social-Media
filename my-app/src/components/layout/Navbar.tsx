@@ -7,10 +7,13 @@ import {
   Home,
   PlaySquare,
   Users,
-  Bell, // Thêm icon Bell
+  Bell,
+  Loader2, // Import Loader2
+  X,
+  Clock,
 } from "lucide-react";
-import { usePathname } from "next/navigation";
-import React from "react";
+import { usePathname, useRouter } from "next/navigation";
+import React, { useState, useEffect, useRef } from "react";
 
 const mainNavLinks = [
   { href: "/", icon: Home, tooltip: "Trang chủ" },
@@ -20,8 +23,89 @@ const mainNavLinks = [
 ];
 
 
+// Mock data for search suggestions (Friends)
+const mockHashtagsAndFriends = [
+  { id: "u1", name: "Nguyễn Văn A", username: "@nguyenvana", type: "friend", avatar: "/userAvatar.png" },
+  { id: "u2", name: "Trần Thị B", username: "@tranthib", type: "friend", avatar: "/userAvatar.png" },
+  { id: "u3", name: "Lê Minh C", username: "@leminhc", type: "friend", avatar: "/userAvatar.png" },
+  { id: "u4", name: "Phạm Văn D", username: "@phamvand", type: "friend", avatar: "/userAvatar.png" },
+];
+
+// Mock data for recent searches
+const mockRecentSearches = [
+  "ReactJS",
+  "Next.js tutorial",
+  "Tailwind CSS",
+  "Nguyễn Văn A"
+];
+
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  // Search State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<typeof mockHashtagsAndFriends>([]);
+  const [recentSearches, setRecentSearches] = useState(mockRecentSearches);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!query.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      setShowDropdown(true);
+      return;
+    }
+
+    setIsSearching(true);
+    setShowDropdown(true);
+
+    // Simulate API call delay
+    searchTimeoutRef.current = setTimeout(() => {
+      const lowerQuery = query.toLowerCase();
+      const filtered = mockHashtagsAndFriends.filter(item =>
+        item.name.toLowerCase().includes(lowerQuery) ||
+        item.username.toLowerCase().includes(lowerQuery)
+      );
+      setSearchResults(filtered);
+      setIsSearching(false);
+    }, 500); // 500ms delay for "loading" effect
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      setShowDropdown(false);
+      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
+  const handleResultClick = (username: string) => {
+    // In a real app, this might navigate to profile
+    // For now, we simulate searching for that person
+    router.push(`/search?q=${encodeURIComponent(username)}`);
+    setShowDropdown(false);
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white shadow-md">
@@ -58,15 +142,129 @@ export function Navbar() {
         {/* === RIGHT: Actions & Profile === */}
         <div className="flex items-center justify-end gap-4">
           {/* Search Bar */}
-          <div className="relative hidden w-full max-w-75 md:block">
+          {/* Search Bar with Dropdown */}
+          <div className="relative hidden w-full max-w-80 md:block" ref={dropdownRef}>
             <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Search className="h-5 w-5 text-gray-400" />
+              {isSearching ? (
+                <Loader2 className="h-5 w-5 animate-spin text-[#f9622e]" />
+              ) : (
+                <Search className="h-5 w-5 text-gray-400" />
+              )}
             </span>
             <input
               type="text"
-              placeholder="Tìm kiếm..."
-              className="w-full rounded-full border-none bg-gray-100 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 transition-all duration-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F9622E]"
+              placeholder="Tìm kiếm bạn bè..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setShowDropdown(true)}
+              className="w-full rounded-full border-none bg-gray-100 py-2 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-500 transition-all duration-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F9622E]"
             />
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setSearchResults([]);
+                  setShowDropdown(false);
+                  if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+                }}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+
+            {/* Dropdown Results */}
+            {showDropdown && (
+              <div className="absolute left-1/2 top-full mt-2 w-[125%] -translate-x-1/2 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5 animate-in fade-in slide-in-from-top-2 duration-200">
+                {!searchQuery ? (
+                  <div className="py-2">
+                    <div className="flex items-center justify-between px-4 pb-2">
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tìm kiếm gần đây</h3>
+                      {recentSearches.length > 0 && (
+                        <button 
+                          onClick={() => setRecentSearches([])}
+                          className="text-xs text-[#f9622e] hover:underline cursor-pointer"
+                        >
+                          Xóa tất cả
+                        </button>
+                      )}
+                    </div>
+                    {recentSearches.length > 0 ? (
+                      recentSearches.map((term, index) => (
+                        <div key={index} className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 cursor-pointer group transition-colors">
+                           <div 
+                             className="flex flex-1 items-center gap-3" 
+                             onClick={() => {
+                               setSearchQuery(term);
+                               setIsSearching(true);
+                               if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+                               searchTimeoutRef.current = setTimeout(() => {
+                                  const lowerQuery = term.toLowerCase();
+                                  const filtered = mockHashtagsAndFriends.filter(item =>
+                                    item.name.toLowerCase().includes(lowerQuery) ||
+                                    item.username.toLowerCase().includes(lowerQuery)
+                                  );
+                                  setSearchResults(filtered);
+                                  setIsSearching(false);
+                               }, 500);
+                             }}
+                           >
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+                                <Clock className="h-4 w-4" /> 
+                              </div>
+                              <span className="text-sm text-gray-700 font-medium">{term}</span>
+                           </div>
+                           <button 
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setRecentSearches(prev => prev.filter((_, i) => i !== index));
+                             }}
+                             className="text-gray-400 opacity-0 group-hover:opacity-100 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200 transition-all"
+                           >
+                             <X className="h-3 w-3" />
+                           </button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-4 py-4 text-center text-sm text-gray-500">
+                        Không có lịch sử tìm kiếm
+                      </div>
+                    )}
+                  </div>
+                ) : isSearching ? (
+                  <div className="p-4 text-center text-sm text-gray-500">Đang tìm kiếm...</div>
+                ) : searchResults.length > 0 ? (
+                  <div className="pt-2">
+                    <h3 className="px-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Bạn bè</h3>
+                    {searchResults.map((result) => (
+                      <div
+                        key={result.id}
+                        onClick={() => handleResultClick(result.name)}
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer transition-colors"
+                      >
+                        <Image src={result.avatar} alt={result.name} width={32} height={32} className="rounded-full bg-gray-200" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{result.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{result.username}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <div
+                      onClick={() => {
+                        setShowDropdown(false);
+                        router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+                      }}
+                      className="border-t border-gray-100 mt-2 px-4 py-3 text-center text-sm text-[#f9622e] font-medium hover:bg-orange-50 cursor-pointer"
+                    >
+                      Xem tất cả kết quả cho &quot;{searchQuery}&quot;
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-sm text-gray-500">Không tìm thấy kết quả nào.</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

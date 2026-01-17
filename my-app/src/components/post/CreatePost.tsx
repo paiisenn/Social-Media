@@ -155,7 +155,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
 
   return (
     <>
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {/* Khu vực 1: Avatar + Input */}
         <div className="flex items-center gap-4 pb-4">
           {/* Avatar */}

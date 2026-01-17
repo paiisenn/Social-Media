@@ -98,32 +98,31 @@ const initialMessageRequests: MessageRequest[] = [
 
 export function SidebarRight() {
   const [activeTab, setActiveTab] = useState("primary");
+  const [searchQuery, setSearchQuery] = useState("");
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [messageRequests, setMessageRequests] = useState<MessageRequest[]>(initialMessageRequests);
   const [suggestedFriends, setSuggestedFriends] = useState<FriendSuggestion[]>(initialSuggestedFriends);
 
-  // State để lưu style (vị trí, kích thước) của thanh trượt
-  const [underlineStyle, setUnderlineStyle] = useState({});
   // Refs để tham chiếu đến các nút tab
   const primaryTabRef = useRef<HTMLButtonElement>(null);
   const requestsTabRef = useRef<HTMLButtonElement>(null);
+  const underlineRef = useRef<HTMLDivElement>(null);
 
   // Effect để cập nhật vị trí thanh trượt khi tab thay đổi
   useEffect(() => {
-    if (activeTab === 'primary' && primaryTabRef.current) {
-      setUnderlineStyle({
-        left: primaryTabRef.current.offsetLeft,
-        width: primaryTabRef.current.offsetWidth,
-      });
-    } else if (activeTab === 'requests' && requestsTabRef.current) {
-      setUnderlineStyle({
-        left: requestsTabRef.current.offsetLeft,
-        width: requestsTabRef.current.offsetWidth,
-      });
+    if (activeTab === 'primary' && primaryTabRef.current && underlineRef.current) {
+      underlineRef.current.style.left = `${primaryTabRef.current.offsetLeft}px`;
+      underlineRef.current.style.width = `${primaryTabRef.current.offsetWidth}px`;
+    } else if (activeTab === 'requests' && requestsTabRef.current && underlineRef.current) {
+      underlineRef.current.style.left = `${requestsTabRef.current.offsetLeft}px`;
+      underlineRef.current.style.width = `${requestsTabRef.current.offsetWidth}px`;
     }
   }, [activeTab]);
   
   const requestCount = messageRequests.length;
+
+  const filteredMessages = messages.filter((msg) => msg.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredRequests = messageRequests.filter((req) => req.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   // Hàm xử lý khi chấp nhận yêu cầu
   const handleAcceptRequest = (id: number) => {
@@ -176,8 +175,18 @@ export function SidebarRight() {
           <input
             type="text"
             placeholder="Tìm kiếm..."
-            className="w-full rounded-full border-none bg-gray-100 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F9622E]"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-full border-none bg-gray-100 py-2 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-500 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F9622E]"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* Tab container */}
@@ -211,7 +220,7 @@ export function SidebarRight() {
               )}
             </button>
             {/* Thanh trượt gạch chân động */}
-            <div className="absolute -bottom-px h-0.5 bg-[#f9622e] transition-all duration-300 ease-in-out" style={underlineStyle} />
+            <div ref={underlineRef} className="absolute -bottom-px h-0.5 bg-[#f9622e] transition-all duration-300 ease-in-out" />
           </div>
         </div>
 
@@ -219,7 +228,8 @@ export function SidebarRight() {
         <div className="mt-2">
           {activeTab === 'primary' && (
             <ul className="space-y-1">
-              {messages.map((msg) => (
+              {filteredMessages.length > 0 ? (
+                filteredMessages.map((msg) => (
                 <li key={msg.id}>
                   <Link href={`/messages?name=${encodeURIComponent(msg.name)}&avatar=${encodeURIComponent(msg.avatar)}`} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-100">
                     <Image src={msg.avatar} alt={msg.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
@@ -230,12 +240,16 @@ export function SidebarRight() {
                     {!msg.isRead && <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500"></div>}
                   </Link>
                 </li>
-              ))}
+              ))
+              ) : (
+                <li className="py-4 text-center text-sm text-gray-500">Không tìm thấy kết quả</li>
+              )}
             </ul>
           )}
           {activeTab === 'requests' && (
             <ul className="space-y-3">
-              {messageRequests.map((req) => (
+              {filteredRequests.length > 0 ? (
+                filteredRequests.map((req) => (
                 <li key={req.id} className="rounded-lg p-2 transition-colors hover:bg-gray-50">
                   <div className="flex items-center gap-3">
                     <Image src={req.avatar} alt={req.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
@@ -249,7 +263,10 @@ export function SidebarRight() {
                     <button onClick={() => handleDeleteRequest(req.id)} className="flex-1 rounded-lg cursor-pointer bg-gray-200 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-300">Xóa</button>
                   </div>
                 </li>
-              ))}
+              ))
+              ) : (
+                <li className="py-4 text-center text-sm text-gray-500">Không tìm thấy kết quả</li>
+              )}
             </ul>
           )}
         </div>

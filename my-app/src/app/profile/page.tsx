@@ -13,8 +13,14 @@ import {
   UserCheck,
   Image as ImageIcon,
   Video,
+  Flag,
+  Ban,
+  Share2,
+  Copy,
 } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
 import { useRef, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import MainLayout from "@/app/main/layout";
 import { CreatePostProfile } from "@/components/post/CreatePostProfile";
 import { PostCard } from "@/components/post/PostCard";
@@ -107,6 +113,7 @@ function formatStatNumber(num: number): string {
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<
     "posts" | "friends" | "photos" | "videos"
   >("posts");
@@ -133,6 +140,40 @@ export default function ProfilePage() {
   // Refs và state cho hiệu ứng underline của tabs
   const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
   const [tabUnderlineStyle, setTabUnderlineStyle] = useState({ left: 0, width: 0 });
+
+  const { toast } = useToast();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleCopyLink = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      toast("Đã sao chép liên kết trang cá nhân!", "success");
+      setIsMenuOpen(false);
+    }).catch(() => {
+      toast("Không thể sao chép liên kết.", "error");
+    });
+  };
+
+  const handleReportUser = () => {
+    setIsMenuOpen(false);
+    alert("Đã gửi báo cáo người dùng. Chúng tôi sẽ xem xét.");
+  };
+
+  const handleBlockUser = () => {
+    setIsMenuOpen(false);
+    alert(`Đã chặn người dùng ${userData?.firstName}.`);
+  };
 
   const handleFollow = () => {
     setIsFollowing(!isFollowing);
@@ -394,22 +435,63 @@ export default function ProfilePage() {
                       {isFollowing ? (
                         <>
                           <UserCheck className="h-4 w-4" />
-                          Following
+                          Đang theo dõi
                         </>
                       ) : (
                         <>
                           <UserPlus className="h-4 w-4" />
-                          Follow
+                          Theo dõi
                         </>
                       )}
                     </button>
                     <button className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-200">
                       <MessageCircle className="h-4 w-4" />
-                      Message
+                      Nhắn tin
                     </button>
-                    <button className="rounded-lg bg-gray-100 p-2 text-gray-600 transition-colors hover:bg-gray-200">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
+                    <div className="relative" ref={menuRef}>
+                      <button
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className="rounded-lg bg-gray-100 p-2 text-gray-600 transition-colors hover:bg-gray-200 h-full flex items-center justify-center cursor-pointer"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+
+                      {isMenuOpen && (
+                        <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black/5 focus:outline-none z-50 animate-in fade-in zoom-in-95 duration-200">
+                          <div className="py-1">
+                            <button
+                              onClick={handleCopyLink}
+                              className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                            >
+                              <Copy className="mr-3 h-4 w-4 text-gray-500" />
+                              Sao chép liên kết
+                            </button>
+                            <button
+                              onClick={() => { setIsMenuOpen(false); toast("Tính năng chia sẻ đang phát triển", "info"); }}
+                              className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                            >
+                              <Share2 className="mr-3 h-4 w-4 text-gray-500" />
+                              Chia sẻ trang cá nhân
+                            </button>
+                            <div className="border-t border-gray-100 my-1"></div>
+                            <button
+                              onClick={handleReportUser}
+                              className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                            >
+                              <Flag className="mr-3 h-4 w-4 text-gray-500" />
+                              Báo cáo trang cá nhân
+                            </button>
+                            <button
+                              onClick={handleBlockUser}
+                              className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
+                            >
+                              <Ban className="mr-3 h-4 w-4 text-red-500" />
+                              Chặn người dùng
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
@@ -517,7 +599,11 @@ export default function ProfilePage() {
                 </h2>
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                   {Array.from({ length: 12 }).map((_, i) => (
-                    <div key={i} className="rounded-lg border border-gray-100 p-3 text-center transition-shadow hover:shadow-md">
+                    <div
+                      key={i}
+                      className="rounded-lg border border-gray-100 p-3 text-center transition-shadow hover:shadow-md cursor-pointer"
+                      onClick={() => router.push(`/profile/u${(i % 4) + 1}`)}
+                    >
                       <Image
                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Friend${i}`}
                         alt={`Friend ${i + 1}`}

@@ -116,7 +116,7 @@ export default function HomePage() {
       <CreatePost onCreatePost={handleCreatePost} />
 
       {/* Posts Feed */}
-      <div className="space-y-5">
+      <div className="space-y-3">
         {posts.map((post) => (
           <PostCard
             key={post.id}
