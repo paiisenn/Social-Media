@@ -326,6 +326,7 @@ export function PostCard({
               onClick={handleLike}
               className={`flex items-center gap-2 transition-colors group cursor-pointer ${isLiked ? "text-red-500" : "text-gray-500 hover:text-red-500"
                 }`}
+              
             >
               <div
                 className={`p-2 rounded-full transition-colors ${isLiked ? "bg-red-50" : "group-hover:bg-red-50"

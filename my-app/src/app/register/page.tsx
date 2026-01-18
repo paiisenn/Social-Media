@@ -18,8 +18,6 @@ export default function RegisterPage() {
 
     const [formData, setFormData] = useState({
         displayName: "",
-        firstName: "",
-        lastName: "",
         email: "",
         password: "",
         confirmPassword: "",
@@ -45,12 +43,10 @@ export default function RegisterPage() {
 
         try {
             // Gọi API đăng ký
-            const fullName = `${formData.firstName} ${formData.lastName}`.trim();
-
             const response = await authAPI.register({
                 email: formData.email,
                 password: formData.password,
-                name: fullName || formData.displayName, // Dùng fullName, nếu rỗng thì dùng displayName
+                name: formData.displayName,
             });
 
             // Lưu token vào localStorage
@@ -64,18 +60,20 @@ export default function RegisterPage() {
                 router.push("/");
             }, 1500);
 
-        } catch (error: any) {
+        } catch (error) {
             console.error('Registration error:', error);
+            
+            const errorMessage = error instanceof Error ? error.message : "Đăng ký thất bại! Vui lòng thử lại.";
 
             // Xử lý các loại lỗi khác nhau
-            if (error.message.includes('Email already exists') ||
-                error.message.includes('already')) {
+            if (errorMessage.includes('Email already exists') ||
+                errorMessage.includes('already')) {
                 toast("Email đã được sử dụng. Vui lòng chọn email khác!", "error");
-            } else if (error.message.includes('network') ||
-                error.message.includes('fetch')) {
+            } else if (errorMessage.includes('network') ||
+                errorMessage.includes('fetch')) {
                 toast("Lỗi kết nối! Vui lòng kiểm tra internet của bạn.", "error");
             } else {
-                toast(error.message || "Đăng ký thất bại! Vui lòng thử lại.", "error");
+                toast(errorMessage, "error");
             }
         } finally {
             setIsLoading(false);
@@ -159,35 +157,7 @@ export default function RegisterPage() {
                             </div>
                         </div>
 
-                        {/* Name Fields: First Name & Last Name */}
-                        <div className="flex gap-4">
-                            <div className="w-2/4 space-y-2">
-                                <label className="text-sm font-bold text-gray-700" htmlFor="firstName">
-                                    Họ
-                                </label>
-                                <input
-                                    id="firstName"
-                                    type="text"
-                                    placeholder="Họ"
-                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-[#f9622e] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#f9622e]/10 transition-all duration-200 font-medium"
-                                    value={formData.firstName}
-                                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                                />
-                            </div>
-                            <div className="w-2/4 space-y-2">
-                                <label className="text-sm font-bold text-gray-700" htmlFor="lastName">
-                                    Tên
-                                </label>
-                                <input
-                                    id="lastName"
-                                    type="text"
-                                    placeholder="Tên của bạn"
-                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-[#f9622e] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#f9622e]/10 transition-all duration-200 font-medium"
-                                    value={formData.lastName}
-                                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                                />
-                            </div>
-                        </div>
+
 
                         {/* Email Input */}
                         <div className="space-y-2">

@@ -27,16 +27,15 @@ import { PostCard } from "@/components/post/PostCard";
 
 const userData = {
   id: "1",
-  firstName: "Pure",
-  lastName: "Phat",
-  username: "@purephat",
-  email: "phat123@gmail.com",
+  name: "Nice User",
+  username: "test123@gmail.com",
+  email: "test123@gmail.com",
   bio: "Lập trình viên và người sáng tạo nội dung đầy đam mê 🚀 Yêu thích lập trình, nhiếp ảnh và chia sẻ kiến ​​thức ✨",
   avatar: "/userAvatar.png",
   coverImage:
     "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=1200&h=400&fit=crop",
   location: "TP.Ho Chi Minh, Vietnam",
-  website: "https://purephat.dev",
+  website: "https://niceuser.dev",
   joinDate: "2024-01-15",
   stats: {
     posts: 29,
@@ -51,9 +50,9 @@ const mockPosts = [
   {
     id: "1",
     author: {
-      name: "Pure Phat",
+      name: "Nice User",
       avatar: "/userAvatar.png",
-      username: "@purephat",
+      username: "test123@gmail.com",
     },
     content:
       "Vừa hoàn thành việc xây dựng một ứng dụng mạng xã hội tuyệt vời bằng Next.js 16! 🚀 Các tính năng mới thật đáng kinh ngạc.",
@@ -67,9 +66,9 @@ const mockPosts = [
   {
     id: "2",
     author: {
-      name: "Pure Phat",
+      name: "Nice User",
       avatar: "/userAvatar.png",
-      username: "@purephat",
+      username: "test123@gmail.com",
     },
     content:
       "Hoàng hôn hôm nay thật đẹp! Đôi khi bạn cần nghỉ ngơi khỏi việc lập trình và tận hưởng thiên nhiên 🌅",
@@ -83,9 +82,9 @@ const mockPosts = [
   {
     id: "3",
     author: {
-      name: "Pure Phat",
+      name: "Nice User",
       avatar: "/userAvatar.png",
-      username: "@purephat",
+      username: "test123@gmail.com",
     },
     content: "Coding session với một tách cà phê ☕ Không có gì tuyệt vời hơn!",
     likes: 89,
@@ -125,6 +124,10 @@ export default function ProfilePage() {
   const [bio, setBio] = useState(userData.bio);
   const [location, setLocation] = useState(userData.location);
   const [website, setWebsite] = useState(userData.website);
+
+  // Track saved images to allow reverting on cancel
+  const [savedCoverImage, setSavedCoverImage] = useState(userData.coverImage);
+  const [savedAvatar, setSavedAvatar] = useState(userData.avatar);
 
   // Editing states
   const [isEditing, setIsEditing] = useState(false);
@@ -172,7 +175,7 @@ export default function ProfilePage() {
 
   const handleBlockUser = () => {
     setIsMenuOpen(false);
-    alert(`Đã chặn người dùng ${userData?.firstName}.`);
+    alert(`Đã chặn người dùng ${userData?.name}.`);
   };
 
   const handleFollow = () => {
@@ -196,6 +199,9 @@ export default function ProfilePage() {
     setBio(editedBio);
     setLocation(editedLocation);
     setWebsite(editedWebsite);
+    // Persist images
+    setSavedCoverImage(coverImage);
+    setSavedAvatar(avatar);
     setIsEditing(false);
   };
 
@@ -204,6 +210,9 @@ export default function ProfilePage() {
     setEditedBio(bio);
     setEditedLocation(location);
     setEditedWebsite(website);
+    // Revert images
+    setCoverImage(savedCoverImage);
+    setAvatar(savedAvatar);
     setIsEditing(false);
   };
 
@@ -227,9 +236,9 @@ export default function ProfilePage() {
     const newPost = {
       id: Date.now().toString(),
       author: {
-        name: "Pure Phat",
+        name: "Nice User",
         avatar: "/userAvatar.png",
-        username: "@purephat",
+        username: "test123@gmail.com",
       },
       content: postData.content,
       image: postData.media?.type === "image" ? postData.media.url : undefined,
@@ -319,7 +328,7 @@ export default function ProfilePage() {
             <div className="relative -mt-20 mb-4 inline-block">
               <Image
                 src={avatar}
-                alt={`${userData.firstName} ${userData.lastName}`}
+                alt={`${userData.name}`}
                 width={160}
                 height={160}
                 className="h-40 w-40 rounded-full border-4 border-white object-cover shadow-lg"
@@ -346,7 +355,7 @@ export default function ProfilePage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex-1">
                 <h1 className="text-3xl font-bold text-gray-900">
-                  {userData.firstName} {userData.lastName}
+                  {userData.name}
                 </h1>
                 <p className="text-lg text-gray-600 mb-2">
                   {userData.username}
@@ -506,7 +515,7 @@ export default function ProfilePage() {
                 <textarea
                   value={editedBio}
                   onChange={(e) => setEditedBio(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#f9622e] focus:ring-[#f9622e] sm:text-sm p-2 border"
+                  className="mt-1 block w-full rounded-md border-gray-300 outline-none shadow-sm focus:border-[#f9622e] focus:ring-[#f9622e] focus:ring-1 duration-200 sm:text-sm p-2 border"
                   rows={3}
                 />
               </div>
@@ -517,7 +526,7 @@ export default function ProfilePage() {
                     type="text"
                     value={editedLocation}
                     onChange={(e) => setEditedLocation(e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#f9622e] focus:ring-[#f9622e] sm:text-sm p-2 border"
+                    className="mt-1 block w-full rounded-md border-gray-300 outline-none shadow-sm focus:border-[#f9622e] focus:ring-[#f9622e] focus:ring-1 duration-200 sm:text-sm p-2 border"
                   />
                 </div>
                 <div>
@@ -526,7 +535,7 @@ export default function ProfilePage() {
                     type="text"
                     value={editedWebsite}
                     onChange={(e) => setEditedWebsite(e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#f9622e] focus:ring-[#f9622e] sm:text-sm p-2 border"
+                    className="mt-1 block w-full rounded-md border-gray-300 outline-none shadow-sm focus:border-[#f9622e] focus:ring-[#f9622e] focus:ring-1 duration-200 sm:text-sm p-2 border"
                   />
                 </div>
               </div>

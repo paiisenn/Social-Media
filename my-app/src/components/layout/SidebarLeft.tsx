@@ -82,9 +82,9 @@ export function SidebarLeft() {
   // Dữ liệu người dùng giả lập
   const user = {
     avatar: "/userAvatar.png",
-    firstName: "Pure",
-    lastName: "Phat",
-    email: "phat123@gmail.com",
+    firstName: "Nice",
+    lastName: "User",
+    email: "test123@gmail.com",
     stats: {
       posts: 29,
       followers: 380, 

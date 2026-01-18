@@ -11,6 +11,7 @@ import {
   Loader2, // Import Loader2
   X,
   Clock,
+  ArrowUpLeft,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useState, useEffect, useRef } from "react";
@@ -166,6 +167,7 @@ export function Navbar() {
                   setSearchQuery("");
                   setSearchResults([]);
                   setShowDropdown(false);
+                  setIsSearching(false);
                   if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
                 }}
                 className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 cursor-pointer"
@@ -176,7 +178,7 @@ export function Navbar() {
 
             {/* Dropdown Results */}
             {showDropdown && (
-              <div className="absolute left-1/2 top-full mt-2 w-[125%] -translate-x-1/2 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute left-1/2 top-full mt-2 w-[110%] -translate-x-1/2 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5 animate-in fade-in slide-in-from-top-2 duration-200">
                 {!searchQuery ? (
                   <div className="py-2">
                     <div className="flex items-center justify-between px-4 pb-2">
@@ -194,27 +196,39 @@ export function Navbar() {
                       recentSearches.map((term, index) => (
                         <div key={index} className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 cursor-pointer group transition-colors">
                            <div 
-                             className="flex flex-1 items-center gap-3" 
+                             className="flex flex-1 items-center gap-3 min-w-0" 
                              onClick={() => {
-                               setSearchQuery(term);
-                               setIsSearching(true);
-                               if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-                               searchTimeoutRef.current = setTimeout(() => {
-                                  const lowerQuery = term.toLowerCase();
-                                  const filtered = mockHashtagsAndFriends.filter(item =>
-                                    item.name.toLowerCase().includes(lowerQuery) ||
-                                    item.username.toLowerCase().includes(lowerQuery)
-                                  );
-                                  setSearchResults(filtered);
-                                  setIsSearching(false);
-                               }, 500);
+                               setShowDropdown(false);
+                               router.push(`/search?q=${encodeURIComponent(term)}`);
                              }}
                            >
                               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500">
                                 <Clock className="h-4 w-4" /> 
                               </div>
-                              <span className="text-sm text-gray-700 font-medium">{term}</span>
+                              <span className="text-sm text-gray-700 font-medium truncate">{term}</span>
                            </div>
+                           <div className="flex items-center gap-1">
+                             <button 
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 setSearchQuery(term);
+                                 setIsSearching(true);
+                                 if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+                                 searchTimeoutRef.current = setTimeout(() => {
+                                    const lowerQuery = term.toLowerCase();
+                                    const filtered = mockHashtagsAndFriends.filter(item =>
+                                      item.name.toLowerCase().includes(lowerQuery) ||
+                                      item.username.toLowerCase().includes(lowerQuery)
+                                    );
+                                    setSearchResults(filtered);
+                                    setIsSearching(false);
+                                 }, 500);
+                               }}
+                               className="text-gray-400 opacity-0 group-hover:opacity-100 hover:text-[#f9622e] p-1.5 rounded-full hover:bg-orange-50 transition-all"
+                               title="Điền vào ô tìm kiếm"
+                             >
+                               <ArrowUpLeft className="h-4 w-4" />
+                             </button>
                            <button 
                              onClick={(e) => {
                                e.stopPropagation();
@@ -224,6 +238,7 @@ export function Navbar() {
                            >
                              <X className="h-3 w-3" />
                            </button>
+                           </div>
                         </div>
                       ))
                     ) : (
@@ -245,8 +260,12 @@ export function Navbar() {
                       >
                         <Image src={result.avatar} alt={result.name} width={32} height={32} className="rounded-full bg-gray-200" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{result.name}</p>
-                          <p className="text-xs text-gray-500 truncate">{result.username}</p>
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            <HighlightText text={result.name} highlight={searchQuery} />
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            <HighlightText text={result.username} highlight={searchQuery} />
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -261,7 +280,17 @@ export function Navbar() {
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 text-center text-sm text-gray-500">Không tìm thấy kết quả nào.</div>
+                  <><div className="p-4 text-center text-sm text-gray-500">Không tìm thấy kết quả nào.</div>
+                  <div
+                      onClick={() => {
+                        setShowDropdown(false);
+                        router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+                      }}
+                      className="border-t border-gray-100 px-4 py-3 text-center text-sm text-[#f9622e] font-medium hover:bg-orange-50 cursor-pointer"
+                    >
+                      Xem tất cả kết quả cho &quot;{searchQuery}&quot;
+                    </div></>
+                  
                 )}
               </div>
             )}
@@ -283,5 +312,26 @@ function MainNavLink({ href, active, tooltip, children }: { href: string; active
       </div>
       <div className="absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">{tooltip}</div>
     </Link>
+  );
+}
+
+function HighlightText({ text, highlight }: { text: string; highlight: string }) {
+  if (!highlight.trim()) return <>{text}</>;
+
+  const escapedHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(${escapedHighlight})`, "gi"));
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === highlight.toLowerCase() ? (
+          <span key={i} className="text-[#f9622e] font-bold">
+            {part}
+          </span>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
   );
 }
