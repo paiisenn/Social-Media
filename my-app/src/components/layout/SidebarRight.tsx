@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
+import { useAuth } from "@/hooks/useAuth";
 
 // --- Type Definitions ---
 interface FriendSuggestion {
@@ -102,6 +103,8 @@ export function SidebarRight() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [messageRequests, setMessageRequests] = useState<MessageRequest[]>(initialMessageRequests);
   const [suggestedFriends, setSuggestedFriends] = useState<FriendSuggestion[]>(initialSuggestedFriends);
+  
+  const { isAuthenticated, loading } = useAuth();
 
   // Refs để tham chiếu đến các nút tab
   const primaryTabRef = useRef<HTMLButtonElement>(null);
@@ -118,7 +121,7 @@ export function SidebarRight() {
       underlineRef.current.style.width = `${requestsTabRef.current.offsetWidth}px`;
     }
   }, [activeTab]);
-  
+
   const requestCount = messageRequests.length;
 
   const filteredMessages = messages.filter((msg) => msg.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -162,139 +165,185 @@ export function SidebarRight() {
 
   return (
     <aside className="custom-scrollbar sticky top-14 hidden h-[calc(100vh-3.5rem)] w-78 flex-col gap-4 overflow-y-auto bg-gray-50 p-4 lg:flex">
-      {/* Khối Tin nhắn */}
-      <div className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-bold text-gray-800">Tin nhắn</h3>
-        </div>
+      {!loading && (
+        <>
+          {/* Khối Tin nhắn */}
+          {isAuthenticated ? (
+            <div className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-800">Tin nhắn</h3>
+              </div>
 
-        <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Search className="h-5 w-5 text-gray-400" />
-          </span>
-          <input
-            type="text"
-            placeholder="Tìm kiếm..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-full border-none bg-gray-100 py-2 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-500 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F9622E]"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 cursor-pointer"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Tab container */}
-        <div className="border-b border-gray-200">
-          <div className="relative flex items-center gap-6">
-            <button
-              ref={primaryTabRef}
-              onClick={() => setActiveTab("primary")}
-              className={`pb-2 text-sm font-semibold transition-colors duration-300 ${
-                activeTab === "primary"
-                  ? "text-[#f9622e]"
-                  : "text-gray-500 hover:text-gray-800 cursor-pointer"
-              }`}
-            >
-              Chính
-            </button>
-            <button
-              ref={requestsTabRef}
-              onClick={() => setActiveTab("requests")}
-              className={`relative pb-2 text-sm font-semibold transition-colors duration-300 group ${
-                activeTab === "requests"
-                  ? "text-[#f9622e]"
-                  : "text-gray-500 hover:text-gray-800 cursor-pointer"
-              }`}
-            >
-              Yêu cầu
-              {requestCount > 0 && (
-                <span className="absolute -right-5 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white group-hover:bg-red-600">
-                  {requestCount}
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Search className="h-5 w-5 text-gray-400" />
                 </span>
-              )}
-            </button>
-            {/* Thanh trượt gạch chân động */}
-            <div ref={underlineRef} className="absolute -bottom-px h-0.5 bg-[#f9622e] transition-all duration-300 ease-in-out" />
-          </div>
-        </div>
-
-        {/* Danh sách tin nhắn */}
-        <div className="mt-2">
-          {activeTab === 'primary' && (
-            <ul className="space-y-1">
-              {filteredMessages.length > 0 ? (
-                filteredMessages.map((msg) => (
-                <li key={msg.id}>
-                  <Link href={`/messages?name=${encodeURIComponent(msg.name)}&avatar=${encodeURIComponent(msg.avatar)}`} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-100">
-                    <Image src={msg.avatar} alt={msg.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-gray-800">{msg.name}</p>
-                      <p className={`truncate text-xs ${msg.isRead ? 'text-gray-500' : 'font-bold text-gray-800'}`}>{msg.lastMessage}</p>
-                    </div>
-                    {!msg.isRead && <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500"></div>}
-                  </Link>
-                </li>
-              ))
-              ) : (
-                <li className="py-4 text-center text-sm text-gray-500">Không tìm thấy kết quả</li>
-              )}
-            </ul>
-          )}
-          {activeTab === 'requests' && (
-            <ul className="space-y-3">
-              {filteredRequests.length > 0 ? (
-                filteredRequests.map((req) => (
-                <li key={req.id} className="rounded-lg p-2 transition-colors hover:bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <Image src={req.avatar} alt={req.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-gray-800">{req.name}</p>
-                      <p className="truncate text-xs text-gray-500">{req.messageSnippet}</p>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex gap-2">
-                    <button onClick={() => handleAcceptRequest(req.id)} className="flex-1 rounded-lg cursor-pointer bg-[#f9622e] py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#f9622e]/90">Chấp nhận</button>
-                    <button onClick={() => handleDeleteRequest(req.id)} className="flex-1 rounded-lg cursor-pointer bg-gray-200 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-300">Xóa</button>
-                  </div>
-                </li>
-              ))
-              ) : (
-                <li className="py-4 text-center text-sm text-gray-500">Không tìm thấy kết quả</li>
-              )}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      {/* Khối Gợi ý kết bạn */}
-      <div className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm">
-        <h3 className="text-lg font-bold text-gray-800">Gợi ý cho bạn</h3>
-        <ul className="space-y-3">
-          {suggestedFriends.map((friend) => (
-            <li key={friend.id} className="flex items-center gap-3">
-              <Image src={friend.avatar} alt={friend.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
-              <div className="flex-1">
-                <p className="font-semibold text-gray-800 text-sm">{friend.name}</p>
-                <p className="text-xs text-gray-500">{friend.mutualFriends} bạn chung</p>
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-full border-none bg-gray-100 py-2 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-500 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F9622E]"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => handleAddFriend(friend.id)} title="Thêm bạn" className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#f9622e]/10 text-[#f9622e] transition-colors hover:bg-[#f9622e]/20">
-                  <UserPlus size={16} />
-                </button>
-                <button onClick={() => handleRemoveSuggestion(friend.id)} title="Xóa gợi ý" className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200">
-                  <X size={16} />
-                </button>
+
+              {/* Tab container */}
+              <div className="border-b border-gray-200">
+                <div className="relative flex items-center gap-6">
+                  <button
+                    ref={primaryTabRef}
+                    onClick={() => setActiveTab("primary")}
+                    className={`pb-2 text-sm font-semibold transition-colors duration-300 ${activeTab === "primary"
+                        ? "text-[#f9622e]"
+                        : "text-gray-500 hover:text-gray-800 cursor-pointer"
+                      }`}
+                  >
+                    Chính
+                  </button>
+                  <button
+                    ref={requestsTabRef}
+                    onClick={() => setActiveTab("requests")}
+                    className={`relative pb-2 text-sm font-semibold transition-colors duration-300 group ${activeTab === "requests"
+                        ? "text-[#f9622e]"
+                        : "text-gray-500 hover:text-gray-800 cursor-pointer"
+                      }`}
+                  >
+                    Yêu cầu
+                    {requestCount > 0 && (
+                      <span className="absolute -right-5 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white group-hover:bg-red-600">
+                        {requestCount}
+                      </span>
+                    )}
+                  </button>
+                  {/* Thanh trượt gạch chân động */}
+                  <div ref={underlineRef} className="absolute -bottom-px h-0.5 bg-[#f9622e] transition-all duration-300 ease-in-out" />
+                </div>
               </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+
+              {/* Danh sách tin nhắn */}
+              <div className="mt-2">
+                {activeTab === 'primary' && (
+                  <ul className="space-y-1">
+                    {filteredMessages.length > 0 ? (
+                      filteredMessages.map((msg) => (
+                        <li key={msg.id}>
+                          <Link href={`/messages?name=${encodeURIComponent(msg.name)}&avatar=${encodeURIComponent(msg.avatar)}`} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-100">
+                            <Image src={msg.avatar} alt={msg.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-gray-800">{msg.name}</p>
+                              <p className={`truncate text-xs ${msg.isRead ? 'text-gray-500' : 'font-bold text-gray-800'}`}>{msg.lastMessage}</p>
+                            </div>
+                            {!msg.isRead && <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500"></div>}
+                          </Link>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="py-4 text-center text-sm text-gray-500">Không tìm thấy kết quả</li>
+                    )}
+                  </ul>
+                )}
+                {activeTab === 'requests' && (
+                  <ul className="space-y-3">
+                    {filteredRequests.length > 0 ? (
+                      filteredRequests.map((req) => (
+                        <li key={req.id} className="rounded-lg p-2 transition-colors hover:bg-gray-50">
+                          <div className="flex items-center gap-3">
+                            <Image src={req.avatar} alt={req.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-gray-800">{req.name}</p>
+                              <p className="truncate text-xs text-gray-500">{req.messageSnippet}</p>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex gap-2">
+                            <button onClick={() => handleAcceptRequest(req.id)} className="flex-1 rounded-lg cursor-pointer bg-[#f9622e] py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#f9622e]/90">Chấp nhận</button>
+                            <button onClick={() => handleDeleteRequest(req.id)} className="flex-1 rounded-lg cursor-pointer bg-gray-200 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-300">Xóa</button>
+                          </div>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="py-4 text-center text-sm text-gray-500">Không tìm thấy kết quả</li>
+                    )}
+                  </ul>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm">
+              <div className="flex flex-col items-center text-center space-y-3 py-6">
+                <div className="rounded-full bg-orange-50 p-3">
+                  <Search className="h-8 w-8 text-[#f9622e]" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800">Bạn chưa đăng nhập?</h3>
+                  <p className="text-xs text-gray-500 mt-1 px-2">
+                    Đăng nhập để sử dụng tính năng trò chuyện và nhắn tin với bạn bè!
+                  </p>
+                </div>
+                <Link
+                  href="/login"
+                  className="w-full rounded-lg bg-[#f9622e] py-2 text-sm font-bold text-white transition-all hover:bg-[#ff7240] hover:shadow-lg hover:shadow-orange-500/30"
+                >
+                  Đăng nhập ngay
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Khối Gợi ý kết bạn */}
+          {isAuthenticated ? (
+            <div className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm">
+              <h3 className="text-lg font-bold text-gray-800">Gợi ý cho bạn</h3>
+              <ul className="space-y-3">
+                {suggestedFriends.map((friend) => (
+                  <li key={friend.id} className="flex items-center gap-3">
+                    <Image src={friend.avatar} alt={friend.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800 text-sm">{friend.name}</p>
+                      <p className="text-xs text-gray-500">{friend.mutualFriends} bạn chung</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => handleAddFriend(friend.id)} title="Thêm bạn" className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#f9622e]/10 text-[#f9622e] transition-colors hover:bg-[#f9622e]/20">
+                        <UserPlus size={16} />
+                      </button>
+                      <button onClick={() => handleRemoveSuggestion(friend.id)} title="Xóa gợi ý" className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200">
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm">
+              <div className="flex flex-col items-center text-center space-y-3 py-6">
+                <div className="rounded-full bg-orange-50 p-3">
+                  <UserPlus className="h-8 w-8 text-[#f9622e]" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800">Tìm bạn mới?</h3>
+                  <p className="text-xs text-gray-500 mt-1 px-2">
+                    Đăng nhập để khám phá những người mới và mở rộng mạng lưới kết nối của bạn!
+                  </p>
+                </div>
+                <Link
+                  href="/login"
+                  className="w-full rounded-lg bg-[#f9622e] py-2 text-sm font-bold text-white transition-all hover:bg-[#ff7240] hover:shadow-lg hover:shadow-orange-500/30"
+                >
+                  Đăng nhập ngay
+                </Link>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </aside>
   );
 }

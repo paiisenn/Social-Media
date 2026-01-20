@@ -34,16 +34,17 @@ export default function LoginPage() {
             localStorage.setItem("access_token", response.access_token)
             localStorage.setItem("user", JSON.stringify(response.user))
 
-            toast("Đăng nhập thành công!")
+            toast("Đăng nhập thành công!", "success")
             setTimeout(() => router.push("/"), 1000)
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Login error:", error)
-            if (error.message.includes("Email") || error.message.includes("password")) {
-                toast("Email hoặc mật khẩu không chính xác!")
-            } else if (error.message.includes("network") || error.message.includes("fetch")) {
-                toast("Lỗi kết nối. Vui lòng kiểm tra internet của bạn.")
+            const err = error as Error
+            if (err.message.includes("Email") || err.message.includes("password")) {
+                toast("Email hoặc mật khẩu không chính xác!", "error")
+            } else if (err.message.includes("network") || err.message.includes("fetch")) {
+                toast("Lỗi kết nối. Vui lòng kiểm tra internet của bạn.", "error")
             } else {
-                toast('Đăng nhập thất bại, vui lòng thử lại')
+                toast('Đăng nhập thất bại, vui lòng thử lại', "error")
             }
         } finally {
             setIsLoading(false)

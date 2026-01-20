@@ -13,11 +13,15 @@ import {
   Lock,
 } from "lucide-react";
 import MainLayout from "@/app/main/layout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const { loading, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState("general");
-  const [loading, setLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
   const [settings, setSettings] = useState({
     privacy: "public",
     language: "vi",
@@ -40,6 +44,13 @@ export default function SettingsPage() {
 
   const [saved, setSaved] = useState(false);
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [loading, isAuthenticated, router]);
+
   const handleToggle = (path: string) => {
     setSettings((prev) => {
       const keys = path.split(".");
@@ -56,10 +67,10 @@ export default function SettingsPage() {
   };
 
   const handleSave = () => {
-    setLoading(true);
+    setSaveLoading(true);
     // Simulate API call
     setTimeout(() => {
-      setLoading(false);
+      setSaveLoading(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     }, 800);
@@ -403,8 +414,14 @@ export default function SettingsPage() {
   };
 
   return (
-    <MainLayout>
-      <div className="mx-auto max-w-5xl py-1">
+    <MainLayout>      {loading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f9622e] mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải...</p>
+          </div>
+        </div>
+      ) : (      <div className="mx-auto max-w-5xl py-1">
         <div className="mb-5">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2.5 bg-[#f9622e] rounded-xl shadow-lg shadow-[#f9622e]/20">
@@ -444,10 +461,10 @@ export default function SettingsPage() {
               <div className="rounded-2xl bg-white p-4 shadow-sm border border-gray-100">
                 <button
                   onClick={handleSave}
-                  disabled={loading}
+                  disabled={saveLoading}
                   className="w-full flex items-center cursor-pointer justify-center gap-2 rounded-xl bg-[#f9622e] px-4 py-3 text-sm font-bold text-white shadow-lg shadow-orange-200 transition-all hover:bg-[#e0501e] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70"
                 >
-                  {loading ? (
+                  {saveLoading ? (
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   ) : (
                     <Save className="h-4 w-4" />
@@ -464,6 +481,7 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+      )}
     </MainLayout>
   );
 }

@@ -5,7 +5,7 @@ import {
   Camera,
   MapPin,
   Calendar,
-  Link as LinkIcon,
+  Mail,
   Edit3,
   MoreHorizontal,
   UserPlus,
@@ -17,82 +17,38 @@ import {
   Ban,
   Share2,
   Copy,
+  Cake,
 } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/app/main/layout";
 import { CreatePostProfile } from "@/components/post/CreatePostProfile";
 import { PostCard } from "@/components/post/PostCard";
+import { useAuth } from "@/hooks/useAuth";
 
-const userData = {
-  id: "1",
-  name: "Nice User",
-  username: "test123@gmail.com",
-  email: "test123@gmail.com",
-  bio: "Lập trình viên và người sáng tạo nội dung đầy đam mê 🚀 Yêu thích lập trình, nhiếp ảnh và chia sẻ kiến ​​thức ✨",
-  avatar: "/userAvatar.png",
-  coverImage:
-    "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=1200&h=400&fit=crop",
-  location: "TP.Ho Chi Minh, Vietnam",
-  website: "https://niceuser.dev",
-  joinDate: "2024-01-15",
-  stats: {
-    posts: 29,
-    followers: 380,
-    following: 12800,
-  },
-  isFollowing: false,
-  isOwnProfile: true,
-};
+// Helper function to generate username from name
+function generateUsername(name: string): string {
+  return "@" + name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+}
 
-const mockPosts = [
-  {
-    id: "1",
-    author: {
-      name: "Nice User",
-      avatar: "/userAvatar.png",
-      username: "test123@gmail.com",
-    },
-    content:
-      "Vừa hoàn thành việc xây dựng một ứng dụng mạng xã hội tuyệt vời bằng Next.js 16! 🚀 Các tính năng mới thật đáng kinh ngạc.",
-    image:
-      "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=600&h=400&fit=crop",
-    likes: 245,
-    comments: 32,
-    shares: 12,
-    timestamp: "2 giờ trước",
-  },
-  {
-    id: "2",
-    author: {
-      name: "Nice User",
-      avatar: "/userAvatar.png",
-      username: "test123@gmail.com",
-    },
-    content:
-      "Hoàng hôn hôm nay thật đẹp! Đôi khi bạn cần nghỉ ngơi khỏi việc lập trình và tận hưởng thiên nhiên 🌅",
-    image:
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop",
-    likes: 156,
-    comments: 18,
-    shares: 8,
-    timestamp: "1 ngày trước",
-  },
-  {
-    id: "3",
-    author: {
-      name: "Nice User",
-      avatar: "/userAvatar.png",
-      username: "test123@gmail.com",
-    },
-    content: "Coding session với một tách cà phê ☕ Không có gì tuyệt vời hơn!",
-    likes: 89,
-    comments: 24,
-    shares: 5,
-    timestamp: "3 ngày trước",
-  },
-];
+interface Post {
+  id: string;
+  author: {
+    name: string;
+    avatar: string;
+    username: string;
+  };
+  content: string;
+  image?: string;
+  video?: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  timestamp: string;
+}
+
+const mockPosts: Post[] = [];
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString("vi-VN", {
@@ -113,27 +69,43 @@ function formatStatNumber(num: number): string {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { user, loading, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<
     "posts" | "friends" | "photos" | "videos"
   >("posts");
-  const [isFollowing, setIsFollowing] = useState(userData.isFollowing);
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [loading, isAuthenticated, router]);
+
+  // User data from auth
+  const userName = user?.name || "";
+  const userEmail = user?.email || "";
+  const userAvatar = user?.avatar || "/userAvatar.png";
+  const username = generateUsername(userName);
 
   // Define profile data states
-  const [coverImage, setCoverImage] = useState(userData.coverImage);
-  const [avatar, setAvatar] = useState(userData.avatar);
-  const [bio, setBio] = useState(userData.bio);
-  const [location, setLocation] = useState(userData.location);
-  const [website, setWebsite] = useState(userData.website);
+  const [coverImage, setCoverImage] = useState("");
+  const [avatar, setAvatar] = useState(userAvatar);
+  const [bio, setBio] = useState("");
+  const [location, setLocation] = useState("");
+  const [dob, setDob] = useState("");
 
   // Track saved images to allow reverting on cancel
-  const [savedCoverImage, setSavedCoverImage] = useState(userData.coverImage);
-  const [savedAvatar, setSavedAvatar] = useState(userData.avatar);
+  const [savedCoverImage, setSavedCoverImage] = useState("");
+  const [savedAvatar, setSavedAvatar] = useState(userAvatar);
 
   // Editing states
   const [isEditing, setIsEditing] = useState(false);
-  const [editedBio, setEditedBio] = useState(userData.bio);
-  const [editedLocation, setEditedLocation] = useState(userData.location);
-  const [editedWebsite, setEditedWebsite] = useState(userData.website);
+  const [editedName, setEditedName] = useState(userName);
+  const [editedUsername, setEditedUsername] = useState(username);
+  const [editedBio, setEditedBio] = useState("");
+  const [editedLocation, setEditedLocation] = useState("");
+  const [editedDob, setEditedDob] = useState("");
 
   const [posts, setPosts] = useState(mockPosts);
 
@@ -175,7 +147,7 @@ export default function ProfilePage() {
 
   const handleBlockUser = () => {
     setIsMenuOpen(false);
-    alert(`Đã chặn người dùng ${userData?.name}.`);
+    alert(`Đã chặn người dùng ${userName}.`);
   };
 
   const handleFollow = () => {
@@ -194,22 +166,34 @@ export default function ProfilePage() {
     }
   };
 
+  const handleStartEditing = () => {
+    setEditedName(userName);
+    setEditedUsername(username);
+    setEditedBio(bio);
+    setEditedLocation(location);
+    setEditedDob(dob);
+    setIsEditing(true);
+  };
+
   const handleSaveProfile = () => {
-    // Save changes
+    // Save changes (including name and username)
     setBio(editedBio);
     setLocation(editedLocation);
-    setWebsite(editedWebsite);
+    setDob(editedDob);
     // Persist images
     setSavedCoverImage(coverImage);
     setSavedAvatar(avatar);
     setIsEditing(false);
+    toast("Cập nhật thông tin thành công!", "success");
   };
 
   const handleCancelEdit = () => {
-    // Revert changes
+    // Revert changes (including name and username)
+    setEditedName(userName);
+    setEditedUsername(username);
     setEditedBio(bio);
     setEditedLocation(location);
-    setEditedWebsite(website);
+    setEditedDob(dob);
     // Revert images
     setCoverImage(savedCoverImage);
     setAvatar(savedAvatar);
@@ -236,9 +220,9 @@ export default function ProfilePage() {
     const newPost = {
       id: Date.now().toString(),
       author: {
-        name: "Nice User",
-        avatar: "/userAvatar.png",
-        username: "test123@gmail.com",
+        name: userName,
+        avatar: userAvatar,
+        username: username,
       },
       content: postData.content,
       image: postData.media?.type === "image" ? postData.media.url : undefined,
@@ -263,21 +247,21 @@ export default function ProfilePage() {
     );
   };
 
-  const handleReportPost = (postId: string) => {
+  const handleReportPost = (_postId: string) => {
     alert("Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét bài viết này.");
   };
 
-  const tabs = [
+  const tabs = useMemo(() => [
     { key: "posts", label: "Bài đăng", icon: null },
     {
       key: "friends",
       label: "Bạn bè",
       icon: null,
-      count: userData.stats.followers,
+      count: 380,
     },
     { key: "photos", label: "Ảnh", icon: null, count: 12 },
     { key: "videos", label: "Video", icon: null, count: 3 },
-  ];
+  ], []);
 
   useEffect(() => {
     const activeTabIndex = tabs.findIndex((tab) => tab.key === activeTab);
@@ -285,10 +269,18 @@ export default function ProfilePage() {
     if (currentTab) {
       setTabUnderlineStyle({ left: currentTab.offsetLeft, width: currentTab.offsetWidth });
     }
-  }, [activeTab]);
+  }, [activeTab, tabs]);
 
   return (
     <MainLayout>
+      {loading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f9622e] mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải...</p>
+          </div>
+        </div>
+      ) : (
       <div className="mx-auto max-w-6xl">
         {/* Cover Photo Section */}
         <div className="relative mb-4 overflow-hidden rounded-lg bg-white shadow-sm">
@@ -302,7 +294,7 @@ export default function ProfilePage() {
                 className="object-cover"
               />
             )}
-            {userData.isOwnProfile && isEditing && (
+            {user && isEditing && (
               <>
                 <button
                   className="absolute bottom-4 right-4 flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-lg transition-colors hover:bg-gray-50"
@@ -328,12 +320,12 @@ export default function ProfilePage() {
             <div className="relative -mt-20 mb-4 inline-block">
               <Image
                 src={avatar}
-                alt={`${userData.name}`}
+                alt={`${userName}`}
                 width={160}
                 height={160}
                 className="h-40 w-40 rounded-full border-4 border-white object-cover shadow-lg"
               />
-              {userData.isOwnProfile && isEditing && (
+              {user && isEditing && (
                 <>
                   <button
                     className="absolute bottom-2 right-2 cursor-pointer rounded-full bg-gray-100 p-2 text-gray-600 shadow-lg transition-colors hover:bg-gray-200"
@@ -352,22 +344,49 @@ export default function ProfilePage() {
               )}
             </div>
 
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-gray-900">
-                  {userData.name}
-                </h1>
-                <p className="text-lg text-gray-600 mb-2">
-                  {userData.username}
-                </p>
+                {isEditing ? (
+                  <div className="mb-3 flex flex-col gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
+                      <input
+                        type="text"
+                        value={editedName}
+                        onChange={(e) => setEditedName(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xl font-bold text-gray-900 placeholder-gray-400 transition-colors focus:border-[#f9622e] focus:outline-none focus:ring-1 focus:ring-[#f9622e]"
+                        placeholder="Nhập họ và tên"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Tên hiển thị</label>
+                      <input
+                        type="text"
+                        value={editedUsername}
+                        onChange={(e) => setEditedUsername(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-lg text-gray-500 placeholder-gray-400 transition-colors focus:border-[#f9622e] focus:outline-none focus:ring-1 focus:ring-[#f9622e]"
+                        placeholder="@tên_đăng_nhập"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <h1 className="text-3xl font-bold text-gray-900">
+                      {userName}
+                    </h1>
+                    <p className="text-lg text-gray-500 mb-2">
+                      {username}
+                    </p>
+                  </>
+                )}
 
                 <div className="mb-3 text-gray-600">
                   <span className="font-semibold">
-                    {formatStatNumber(userData.stats.followers)}
+                    {formatStatNumber(380)}
                   </span>{" "}
                   followers •{" "}
                   <span className="font-semibold">
-                    {formatStatNumber(userData.stats.following)}
+                    {formatStatNumber(12800)}
                   </span>{" "}
                   following
                 </div>
@@ -380,25 +399,24 @@ export default function ProfilePage() {
 
                     <div className="flex flex-wrap gap-4 text-sm text-gray-500 flex-col">
                       {location && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                           <MapPin className="h-4 w-4" />
                           {location}
                         </div>
                       )}
-                      {website && (
-                        <div className="flex items-center gap-1">
-                          <LinkIcon className="h-4 w-4" />
-                          <a
-                            href={website}
-                            className="text-[#f9622e] hover:underline"
-                          >
-                            {website.replace("https://", "")}
-                          </a>
+                      <div className="flex items-center gap-1.5">
+                        <Mail className="h-4 w-4" />
+                        {userEmail}
+                      </div>
+                      {dob && (
+                        <div className="flex items-center gap-1.5">
+                          <Cake className="h-4 w-4" />
+                          {dob}
                         </div>
                       )}
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         <Calendar className="h-4 w-4" />
-                        Đã tham gia từ {formatDate(userData.joinDate)}
+                        Đã tham gia từ {formatDate("2026-01-15")}
                       </div>
                     </div>
                   </>
@@ -407,7 +425,7 @@ export default function ProfilePage() {
 
               {/* Action Buttons */}
               <div className="flex gap-2">
-                {userData.isOwnProfile ? (
+                {user ? (
                   isEditing ? (
                     <>
                       <button
@@ -425,11 +443,11 @@ export default function ProfilePage() {
                     </>
                   ) : (
                     <button
-                      onClick={() => setIsEditing(true)}
+                      onClick={handleStartEditing}
                       className="flex items-center cursor-pointer gap-2 rounded-lg bg-[#f9622e] px-4 py-2 font-medium text-white transition-colors hover:bg-[#e0501e]"
                     >
                       <Edit3 className="h-4 w-4" />
-                      Edit Profile
+                      Chỉnh sửa trang cá nhân
                     </button>
                   )
                 ) : (
@@ -507,7 +525,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Editable Profile Inputs (Bio, Location, Website) */}
+          {/* Editable Profile Inputs (Bio, Location, Email, DOB) */}
           {isEditing && (
             <div className="px-6 pb-6 space-y-4">
               <div>
@@ -515,6 +533,7 @@ export default function ProfilePage() {
                 <textarea
                   value={editedBio}
                   onChange={(e) => setEditedBio(e.target.value)}
+                  placeholder="Giới thiệu về bản thân..."
                   className="mt-1 block w-full rounded-md border-gray-300 outline-none shadow-sm focus:border-[#f9622e] focus:ring-[#f9622e] focus:ring-1 duration-200 sm:text-sm p-2 border"
                   rows={3}
                 />
@@ -526,18 +545,28 @@ export default function ProfilePage() {
                     type="text"
                     value={editedLocation}
                     onChange={(e) => setEditedLocation(e.target.value)}
+                    placeholder="TPHCM, Việt Nam"
                     className="mt-1 block w-full rounded-md border-gray-300 outline-none shadow-sm focus:border-[#f9622e] focus:ring-[#f9622e] focus:ring-1 duration-200 sm:text-sm p-2 border"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Website</label>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
                   <input
-                    type="text"
-                    value={editedWebsite}
-                    onChange={(e) => setEditedWebsite(e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 outline-none shadow-sm focus:border-[#f9622e] focus:ring-[#f9622e] focus:ring-1 duration-200 sm:text-sm p-2 border"
+                    type="email"
+                    value={userEmail}
+                    disabled
+                    className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 outline-none shadow-sm sm:text-sm p-2 border cursor-not-allowed text-gray-500"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Ngày sinh (DOB)</label>
+                <input
+                  type="date"
+                  value={editedDob}
+                  onChange={(e) => setEditedDob(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 outline-none shadow-sm focus:border-[#f9622e] focus:ring-[#f9622e] focus:ring-1 duration-200 sm:text-sm p-2 border"
+                />
               </div>
             </div>
           )}
@@ -579,7 +608,7 @@ export default function ProfilePage() {
             {activeTab === "posts" && (
               <div className="space-y-4">
                 {/* Create Post - Only show if own profile */}
-                {userData.isOwnProfile && (
+                {user && (
                   <CreatePostProfile onCreatePost={handleCreatePost} />
                 )}
 
@@ -589,7 +618,7 @@ export default function ProfilePage() {
                     <PostCard
                       key={post.id}
                       {...post}
-                      isOwner={userData.isOwnProfile}
+                      isOwner={!!user}
                       onDelete={() => handleDeletePost(post.id)}
                       onEdit={(newContent) =>
                         handleEditPost(post.id, newContent)
@@ -604,7 +633,7 @@ export default function ProfilePage() {
             {activeTab === "friends" && (
               <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
                 <h2 className="mb-4 text-xl font-bold text-gray-900">
-                  Friends ({userData.stats.followers})
+                  Bạn bè (380)
                 </h2>
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                   {Array.from({ length: 12 }).map((_, i) => (
@@ -687,6 +716,7 @@ export default function ProfilePage() {
         </div>
 
       </div>
+      )}
     </MainLayout>
   );
 }

@@ -286,7 +286,7 @@ export default function TrendingPage({
                 </div>
 
                 {/* Filter Tabs */}
-                <div className="sticky top-16 z-30 bg-gray-100/95 backdrop-blur-md py-2 -mx-4 px-4 mb-4 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+                <div className="sticky top-14 z-30 bg-gray-100/95 backdrop-blur-md py-3  -mx-4 px-4 mb-4 flex items-center gap-2 overflow-x-auto scrollbar-hide">
                     {["top", "latest", "people", "media"].map((filter) => (
                         <button
                             key={filter}

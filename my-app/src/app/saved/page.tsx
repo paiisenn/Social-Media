@@ -15,7 +15,9 @@ import {
   FolderOpen
 } from "lucide-react";
 import MainLayout from "@/app/main/layout";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 // --- Helper for conditional classes ---
 function classNames(...classes: (string | undefined | null | false)[]) {
@@ -133,10 +135,19 @@ function formatRelativeTime(dateString: string) {
 
 
 export default function SavedPage() {
+  const router = useRouter();
+  const { loading, isAuthenticated } = useAuth();
   const [savedPosts, setSavedPosts] = useState<SavedPost[]>(mockSavedPosts);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [activeTypeTab, setActiveTypeTab] = useState<"all" | "post" | "image" | "video">("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [loading, isAuthenticated, router]);
 
   const handleRemove = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -176,6 +187,14 @@ export default function SavedPage() {
 
   return (
     <MainLayout>
+      {loading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f9622e] mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải...</p>
+          </div>
+        </div>
+      ) : (
       <div className="mx-auto max-w-5xl py-1">
 
         {/* Simplified Header Section */}
@@ -398,6 +417,7 @@ export default function SavedPage() {
           )}
         </div>
       </div>
+      )}
     </MainLayout>
   );
 }
