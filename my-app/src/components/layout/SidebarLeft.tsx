@@ -9,7 +9,6 @@ import {
   Settings,
   LogOut,
   TrendingUp,
-  X,
 } from "lucide-react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -31,6 +30,11 @@ const trendingItems = [
   { href: "/trending/congnghe", label: "#TechReview" },
   { href: "/trending/amnhac", label: "#HayTraoChoAnh" },
 ];
+
+// Helper function to generate username from name
+function generateUsername(name: string): string {
+  return "@" + name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+}
 
 function SidebarItem({
   href,
@@ -101,6 +105,11 @@ export function SidebarLeft() {
   // Dữ liệu người dùng giả lập
   const { user, isAuthenticated, loading, logout } = useAuth();
 
+  // User data from auth
+  const userName = user?.name || "";
+  const userAvatar = user?.avatar || "/userAvatar.png";
+  const username = user?.username || generateUsername(userName);
+
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
   };
@@ -119,7 +128,6 @@ export function SidebarLeft() {
     <>
       <aside className="custom-scrollbar sticky top-14 hidden h-[calc(100vh-3.5rem)] w-76 flex-col gap-4 overflow-y-auto bg-gray-50 p-4 md:flex">
         {/* Khối Profile và Chức năng */}
-        {/* Khối Profile và Chức năng */}
         {!loading && (
           <div className="flex flex-col gap-4 rounded-xl bg-white p-4 shadow-sm">
             {isAuthenticated && user ? (
@@ -134,7 +142,7 @@ export function SidebarLeft() {
                   />
                   <div className="min-w-0">
                     <h2 className="truncate text-lg font-bold text-gray-800">{user.name}</h2>
-                    <p className="truncate text-sm text-gray-500">{user.email}</p>
+                    <p className="truncate text-sm text-gray-500">{username}</p>
                   </div>
                 </div>
 
@@ -215,7 +223,7 @@ export function SidebarLeft() {
         <div className="fixed inset-0 z-99999 flex items-center justify-center">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+            className="absolute inset-0 -top-3 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={handleLogoutCancel}
           />
 

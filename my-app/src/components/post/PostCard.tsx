@@ -4,7 +4,9 @@ import { Heart, MessageCircle, Share, MoreHorizontal, Bookmark, Trash2, Edit, X,
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Modal } from "@/components/ui/Modal";
+import { AuthPromptModal } from "@/components/ui/AuthPromptModal";
 import { useToast } from "@/context/ToastContext";
+import { useAuth } from "@/hooks/useAuth";
 
 interface PostCardProps {
   id: string;
@@ -52,6 +54,7 @@ export function PostCard({
   onReport,
 }: PostCardProps) {
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [isSaved, setIsSaved] = useState(initialIsSaved);
   const [likeCount, setLikeCount] = useState(initialLikes);
@@ -60,6 +63,10 @@ export function PostCard({
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(content);
   const [isHidden, setIsHidden] = useState(false);
+
+  // Auth modal state
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalFeature, setAuthModalFeature] = useState("");
 
   // Modals state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -91,6 +98,11 @@ export function PostCard({
   }, []);
 
   const handleLike = () => {
+    if (!isAuthenticated) {
+      setAuthModalFeature("thích bài viết");
+      setShowAuthModal(true);
+      return;
+    }
     if (isLiked) {
       setLikeCount((prev) => prev - 1);
     } else {
@@ -100,6 +112,11 @@ export function PostCard({
   };
 
   const handleSave = () => {
+    if (!isAuthenticated) {
+      setAuthModalFeature("lưu bài viết");
+      setShowAuthModal(true);
+      return;
+    }
     setIsSaved(!isSaved);
   };
 
@@ -123,10 +140,13 @@ export function PostCard({
   };
 
   const handleHidePost = () => {
+    if (!isAuthenticated) {
+      setAuthModalFeature("ẩn bài viết");
+      setShowAuthModal(true);
+      return;
+    }
     setIsHidden(true);
     setIsMenuOpen(false);
-    // User requested "undo" option, so we don't toast a success message yet, or we toast it but allow undo in toast. 
-    // The requirement says: "chỗ cho hiện lại khôi phục bài viết nếu đã ẩn đi" -> In-place undo.
   };
 
   const handleUndoHide = () => {
@@ -134,6 +154,11 @@ export function PostCard({
   };
 
   const handleReportClick = () => {
+    if (!isAuthenticated) {
+      setAuthModalFeature("báo cáo bài viết");
+      setShowAuthModal(true);
+      return;
+    }
     setIsMenuOpen(false);
     setShowReportModal(true);
   };
@@ -156,6 +181,11 @@ export function PostCard({
   };
 
   const handleSubmitComment = () => {
+    if (!isAuthenticated) {
+      setAuthModalFeature("bình luận trên bài viết");
+      setShowAuthModal(true);
+      return;
+    }
     if (!commentText.trim()) return;
 
     const newComment: Comment = {
@@ -326,7 +356,7 @@ export function PostCard({
               onClick={handleLike}
               className={`flex items-center gap-2 transition-colors group cursor-pointer ${isLiked ? "text-red-500" : "text-gray-500 hover:text-red-500"
                 }`}
-              
+
             >
               <div
                 className={`p-2 rounded-full transition-colors ${isLiked ? "bg-red-50" : "group-hover:bg-red-50"
@@ -356,7 +386,15 @@ export function PostCard({
             </button>
 
             {/* Share Button */}
-            <button className="flex items-center gap-2 text-gray-500 hover:text-green-500 transition-colors group cursor-pointer">
+            <button
+              onClick={() => {
+                if (!isAuthenticated) {
+                  setAuthModalFeature("chia sẻ bài viết");
+                  setShowAuthModal(true);
+                }
+              }}
+              className="flex items-center gap-2 text-gray-500 hover:text-green-500 transition-colors group cursor-pointer"
+            >
               <div className="p-2 rounded-full group-hover:bg-green-50 transition-colors">
                 <Share className="w-5 h-5 group-active:scale-90 transition-transform" />
               </div>
@@ -451,13 +489,13 @@ export function PostCard({
         footer={
           <>
             <button
-              onClick={(e) => {e.stopPropagation(); setShowDeleteModal(false);}}
+              onClick={(e) => { e.stopPropagation(); setShowDeleteModal(false); }}
               className="rounded-xl px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer"
             >
               Hủy
             </button>
             <button
-              onClick={(e) => {e.stopPropagation(); confirmDelete();}}
+              onClick={(e) => { e.stopPropagation(); confirmDelete(); }}
               className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 transition-colors shadow-lg shadow-red-500/30 cursor-pointer"
             >
               Xóa
@@ -478,13 +516,13 @@ export function PostCard({
         footer={
           <>
             <button
-              onClick={(e) => {e.stopPropagation(); setShowReportModal(false);}}
+              onClick={(e) => { e.stopPropagation(); setShowReportModal(false); }}
               className="rounded-xl px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer"
             >
               Hủy
             </button>
             <button
-              onClick={(e) => {e.stopPropagation(); confirmReport();}}
+              onClick={(e) => { e.stopPropagation(); confirmReport(); }}
               className="rounded-xl bg-[#f9622e] px-4 py-2 text-sm font-bold text-white hover:bg-[#d84e1e] transition-colors shadow-lg shadow-orange-500/30 cursor-pointer"
             >
               Gửi báo cáo
@@ -514,6 +552,13 @@ export function PostCard({
           ))}
         </div>
       </Modal>
+
+      {/* Auth Prompt Modal */}
+      <AuthPromptModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        feature={authModalFeature}
+      />
     </>
   );
 }

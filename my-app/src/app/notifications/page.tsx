@@ -13,7 +13,9 @@ import {
   Filter,
 } from "lucide-react";
 import MainLayout from "@/app/main/layout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 const mockNotifications = [
   {
@@ -119,8 +121,17 @@ function formatNotificationDate(dateString: string) {
 }
 
 export default function NotificationsPage() {
+  const router = useRouter();
+  const { loading, isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState(mockNotifications);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [loading, isAuthenticated, router]);
 
   const filtered =
     filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
@@ -140,8 +151,14 @@ export default function NotificationsPage() {
   };
 
   return (
-    <MainLayout>
-      <div className="mx-auto max-w-4xl py-2">
+    <MainLayout>      {loading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f9622e] mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải...</p>
+          </div>
+        </div>
+      ) : (      <div className="mx-auto max-w-4xl py-2">
         <div className="mb-6 rounded-2xl bg-linear-to-r from-orange-50 to-white p-6 shadow-sm border border-orange-100/50">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -274,6 +291,7 @@ export default function NotificationsPage() {
           )}
         </div>
       </div>
+      )}
     </MainLayout>
   );
 }

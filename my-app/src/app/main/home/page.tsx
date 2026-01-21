@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CreatePost } from "@/components/post/CreatePost";
 import { PostCard } from "@/components/post/PostCard";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Post {
   id: string;
@@ -21,9 +22,12 @@ interface Post {
 }
 
 export default function HomePage() {
+  const { user } = useAuth();
+
   const currentUser = {
-    name: "Nguyễn Văn A",
-    avatar: "/userAvatar.png",
+    name: user?.name || "Nguyễn Văn A",
+    avatar: user?.avatar || "/userAvatar.png",
+    username: user?.username || "@user"
   };
 
   // Mock data for posts
@@ -31,8 +35,9 @@ export default function HomePage() {
     {
       id: "1",
       author: {
-        name: "Nguyễn Văn A",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=NguyenA",
+        name: currentUser.name,
+        avatar: currentUser.avatar,
+        username: currentUser.username,
       },
       content:
         "Hôm nay thời tiết thật đẹp! Đi chơi với bạn bè tại công viên.",
@@ -77,11 +82,12 @@ export default function HomePage() {
     media: { url: string; type: "image" | "video" } | null;
     privacy: string;
   }) => {
-    const newPost = {
+    const newPost: Post = {
       id: Date.now().toString(),
       author: {
-        name: "Nguyễn Văn A",
-        avatar: "/userAvatar.png",
+        name: currentUser.name,
+        avatar: currentUser.avatar,
+        username: currentUser.username,
       },
       content: postData.content,
       image: postData.media?.type === "image" ? postData.media.url : undefined,
@@ -93,6 +99,20 @@ export default function HomePage() {
     };
     setPosts([newPost, ...posts]);
   };
+
+  // Sync the first post with logged in user
+  useEffect(() => {
+    if (user) {
+      setPosts(prev => prev.map(p => p.id === "1" ? {
+        ...p,
+        author: {
+          name: user.name,
+          avatar: user.avatar || "/userAvatar.png",
+          username: user.username || "@user"
+        }
+      } : p));
+    }
+  }, [user]);
 
   const handleDeletePost = (postId: string) => {
     setPosts(posts.filter((post) => post.id !== postId));
@@ -121,7 +141,7 @@ export default function HomePage() {
           <PostCard
             key={post.id}
             {...post}
-            isOwner={post.author.name === currentUser.name}
+            isOwner={!!(user && post.author.name === user.name)}
             onDelete={() => handleDeletePost(post.id)}
             onEdit={(newContent) => handleEditPost(post.id, newContent)}
             onReport={() => handleReportPost(post.id)}

@@ -15,6 +15,8 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { useToast } from "@/context/ToastContext";
+import { useAuth } from "@/hooks/useAuth";
+import { AuthPromptModal } from "@/components/ui/AuthPromptModal";
 
 interface CreatePostProps {
   onCreatePost?: (postData: {
@@ -26,6 +28,9 @@ interface CreatePostProps {
 
 export function CreatePost({ onCreatePost }: CreatePostProps) {
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authFeature, setAuthFeature] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<{
     url: string;
@@ -60,7 +65,21 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
 
   const handleImageClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isAuthenticated) {
+      setAuthFeature("đăng ảnh/video");
+      setShowAuthModal(true);
+      return;
+    }
     fileInputRef.current?.click();
+  };
+
+  const handleOpenModal = () => {
+    if (!isAuthenticated) {
+      setAuthFeature("tạo bài viết");
+      setShowAuthModal(true);
+      return;
+    }
+    setIsModalOpen(true);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,7 +153,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
 
   const handlePost = () => {
     if (!content.trim() && !selectedMedia) {
-      toast("Nội dung bài viết không được để trống!", "error");
+      toast("Nội dung bài viết không được để trống!", "info");
       return;
     }
 
@@ -161,7 +180,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
           {/* Avatar */}
           <div className="h-12 w-12 cursor-pointer shrink-0 rounded-full bg-linear-to-br from-blue-400 to-blue-600 overflow-hidden">
             <Image
-              src="/userAvatar.png"
+              src={user?.avatar || "/userAvatar.png"}
               alt="User"
               width={48}
               height={48}
@@ -172,7 +191,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
           {/* Input Area với Icons ở cuối */}
           <div
             className="flex flex-1 items-center rounded-full border border-gray-300 bg-gray-100 px-4 py-2 duration-200 transition-all hover:bg-gray-200 cursor-pointer"
-            onClick={() => setIsModalOpen(true)}
+            onClick={handleOpenModal}
           >
             <span className="flex-1 text-gray-500 select-none">
               Bạn đang nghĩ gì?
@@ -241,7 +260,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
 
       {/* Modal Tạo bài viết */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in duration-200">
+        <div className="fixed -top-3 inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in duration-200">
           <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-white shadow-2xl animate-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="relative border-b border-gray-200 py-4 text-center">
@@ -268,7 +287,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
               <div className="mb-4 flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full overflow-hidden">
                   <Image
-                    src="/userAvatar.png"
+                    src={user?.avatar || "/userAvatar.png"}
                     alt="User"
                     width={40}
                     height={40}
@@ -276,7 +295,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                   />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Nguyễn Văn A</h3>
+                  <h3 className="font-semibold text-gray-900">{user?.name || "Người dùng"}</h3>
                   <div className="relative mt-1">
                     <button
                       onClick={() => setIsPrivacyOpen(!isPrivacyOpen)}
@@ -333,7 +352,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
 
               {/* Input */}
               <textarea
-                placeholder="Bạn đang nghĩ gì thế, Nguyễn Văn A?"
+                placeholder={`Bạn đang nghĩ gì thế, ${user?.name || "Người dùng"}?`}
                 className="min-h-37.5 w-full resize-none bg-transparent text-lg text-gray-900 placeholder-gray-500 focus:outline-none"
                 autoFocus
                 value={content}
@@ -421,6 +440,11 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
           </div>
         </div>
       )}
+      <AuthPromptModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        feature={authFeature}
+      />
     </>
   );
 }

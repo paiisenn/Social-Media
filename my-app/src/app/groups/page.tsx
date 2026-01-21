@@ -4,6 +4,9 @@ import Image from "next/image";
 import { Users, PlusCircle, Search, Compass, Globe, Lock, ChevronDown, ArrowUpDown, X } from "lucide-react";
 import MainLayout from "@/app/main/layout";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { AuthPromptModal } from "@/components/ui/AuthPromptModal";
 
 const mockGroups = [
 	{
@@ -83,6 +86,9 @@ function formatNumber(n: number) {
 const ITEMS_PER_PAGE = 4;
 
 export default function GroupsPage() {
+	const router = useRouter();
+	const { isAuthenticated } = useAuth();
+	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [query, setQuery] = useState("");
 	const [activeTab, setActiveTab] = useState("discover"); // discover | my-groups
 	const [isLoading, setIsLoading] = useState(true);
@@ -129,6 +135,10 @@ export default function GroupsPage() {
 
 	const handleCreateGroup = (e: React.FormEvent) => {
 		e.preventDefault();
+		if (!isAuthenticated) {
+			setShowAuthModal(true);
+			return;
+		}
 		// Mock adding group
 		const newGroup = {
 			id: `new_${Date.now()}`,
@@ -343,7 +353,14 @@ export default function GroupsPage() {
 											)}
 
 											<div className="mt-auto">
-												<button className="flex w-full items-center cursor-pointer justify-center gap-2 rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-bold text-gray-700 transition-all hover:bg-[#f9622e]/10 hover:text-[#f9622e] active:scale-95">
+												<button 
+													onClick={() => {
+														if (!isAuthenticated) {
+															setShowAuthModal(true);
+														}
+													}}
+													className="flex w-full items-center cursor-pointer justify-center gap-2 rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-bold text-gray-700 transition-all hover:bg-[#f9622e]/10 hover:text-[#f9622e] active:scale-95"
+												>
 													Tham gia nhóm
 												</button>
 											</div>
@@ -456,6 +473,13 @@ export default function GroupsPage() {
 					</div>
 				</div>
 			)}
+
+			{/* Auth Prompt Modal */}
+			<AuthPromptModal
+				isOpen={showAuthModal}
+				onClose={() => setShowAuthModal(false)}
+				feature="tham gia nhóm"
+			/>
 		</MainLayout>
 	);
 }

@@ -6,6 +6,8 @@ import MainLayout from "@/app/main/layout";
 import { PostCard } from "@/components/post/PostCard";
 import Image from "next/image";
 import { Users } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { AuthPromptModal } from "@/components/ui/AuthPromptModal";
 
 // Mock Data (Shared with Home/Navbar for consistency in this demo)
 const mockPosts = [
@@ -143,6 +145,19 @@ export default function SearchPage() {
 
     const lowerQuery = query.toLowerCase();
 
+    const { isAuthenticated } = useAuth();
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [authFeature, setAuthFeature] = useState("");
+
+    const handleProtectedAction = (feature: string, action: () => void) => {
+        if (!isAuthenticated) {
+            setAuthFeature(feature);
+            setShowAuthModal(true);
+            return;
+        }
+        action();
+    };
+
     const [activeTab, setActiveTab] = useState<"all" | "posts" | "people" | "videos" | "groups">("all");
 
     const filteredPosts = query
@@ -225,7 +240,16 @@ export default function SearchPage() {
                                     <span>•</span>
                                     <span>{group.privacy}</span>
                                 </div>
-                                <button className="w-full mt-2 cursor-pointer py-2.5 rounded-lg text-sm font-medium bg-gray-100 hover:bg-[#f9622e]/10 hover:text-[#f9622e] transition-colors">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleProtectedAction("tham gia nhóm", () => {
+                                            // Mock join action
+                                            console.log("Joined group", group.id);
+                                        });
+                                    }}
+                                    className="w-full mt-2 cursor-pointer py-2.5 rounded-lg text-sm font-medium bg-gray-100 hover:bg-[#f9622e]/10 hover:text-[#f9622e] transition-colors"
+                                >
                                     Tham gia nhóm
                                 </button>
                             </div>
@@ -315,6 +339,11 @@ export default function SearchPage() {
 
                     {activeTab === 'videos' && renderPosts(filteredVideos, "Video")}
                 </div>
+                <AuthPromptModal
+                    isOpen={showAuthModal}
+                    onClose={() => setShowAuthModal(false)}
+                    feature={authFeature}
+                />
             </div>
         </MainLayout>
     );

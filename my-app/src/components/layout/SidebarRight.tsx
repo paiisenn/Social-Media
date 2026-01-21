@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, UserPlus, X } from "lucide-react";
+import { MessageCircleMore, Search, UserPlus, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
@@ -279,7 +279,7 @@ export function SidebarRight() {
             <div className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm">
               <div className="flex flex-col items-center text-center space-y-3 py-6">
                 <div className="rounded-full bg-orange-50 p-3">
-                  <Search className="h-8 w-8 text-[#f9622e]" />
+                  <MessageCircleMore className="h-8 w-8 text-[#f9622e]" />
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-800">Bạn chưa đăng nhập?</h3>

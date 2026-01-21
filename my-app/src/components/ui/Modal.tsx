@@ -31,7 +31,7 @@ export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) 
     if (!mounted || !isOpen) return null;
 
     return createPortal(
-        <div onClick={onClose} className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
+        <div onClick={onClose} className="fixed inset-0 -top-3 z-9999 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
             <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">

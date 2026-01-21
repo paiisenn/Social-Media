@@ -21,6 +21,8 @@ import { useRef, useState, useEffect } from "react";
 import MainLayout from "@/app/main/layout";
 import { PostCard } from "@/components/post/PostCard";
 import { useRouter, useParams } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { AuthPromptModal } from "@/components/ui/AuthPromptModal";
 
 // Mock Data Database
 const MOCK_DB = {
@@ -126,6 +128,7 @@ export default function UserProfilePage() {
     const router = useRouter();
     const userId = params.id as string;
     const { toast } = useToast();
+    const { isAuthenticated } = useAuth();
 
     // State
     const [userData, setUserData] = useState<any>(null);
@@ -133,6 +136,17 @@ export default function UserProfilePage() {
     const [isFollowing, setIsFollowing] = useState(false);
     const [activeTab, setActiveTab] = useState<"posts" | "friends" | "photos" | "videos">("posts");
     const [isLoading, setIsLoading] = useState(true);
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [authFeature, setAuthFeature] = useState("");
+
+    const handleProtectedAction = (feature: string, action: () => void) => {
+        if (!isAuthenticated) {
+            setAuthFeature(feature);
+            setShowAuthModal(true);
+            return;
+        }
+        action();
+    };
 
     // Define isOwnProfile - For simplified demo, assume logged in user is NOT any of these ID unless specified
     // In real app, check context/auth
@@ -167,16 +181,24 @@ export default function UserProfilePage() {
         });
     };
 
+    const handleMessage = () => {
+        handleProtectedAction("nhắn tin", () => {
+            router.push(`/messages?name=${encodeURIComponent(`${userData?.firstName} ${userData?.lastName}`)}&avatar=${encodeURIComponent(userData?.avatar)}`);
+        });
+    };
+
     const handleReportUser = () => {
-        setIsMenuOpen(false);
-        // Implement report logic modal here
-        alert("Đã gửi báo cáo người dùng. Chúng tôi sẽ xem xét.");
+        handleProtectedAction("báo cáo người dùng", () => {
+            setIsMenuOpen(false);
+            alert("Đã gửi báo cáo người dùng. Chúng tôi sẽ xem xét.");
+        });
     };
 
     const handleBlockUser = () => {
-        setIsMenuOpen(false);
-        // Implement block logic here
-        alert(`Đã chặn người dùng ${userData?.firstName}.`);
+        handleProtectedAction("chặn người dùng", () => {
+            setIsMenuOpen(false);
+            alert(`Đã chặn người dùng ${userData?.firstName}.`);
+        });
     };
 
     useEffect(() => {
@@ -215,7 +237,9 @@ export default function UserProfilePage() {
 
 
     const handleFollow = () => {
-        setIsFollowing(!isFollowing);
+        handleProtectedAction("theo dõi", () => {
+            setIsFollowing(!isFollowing);
+        });
     };
 
     const tabs = [
@@ -341,7 +365,10 @@ export default function UserProfilePage() {
                                         </>
                                     )}
                                 </button>
-                                <button className="flex items-center cursor-pointer gap-2 rounded-lg bg-gray-100 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-200">
+                                <button
+                                    onClick={handleMessage}
+                                    className="flex items-center cursor-pointer gap-2 rounded-lg bg-gray-100 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-200"
+                                >
                                     <MessageCircle className="h-4 w-4" />
                                     Nhắn tin
                                 </button>
@@ -497,6 +524,11 @@ export default function UserProfilePage() {
                     </div>
                 </div>
             </div>
+            <AuthPromptModal
+                isOpen={showAuthModal}
+                onClose={() => setShowAuthModal(false)}
+                feature={authFeature}
+            />
         </MainLayout>
     );
 }

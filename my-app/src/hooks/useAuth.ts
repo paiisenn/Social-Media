@@ -7,6 +7,7 @@ export interface User {
     id: string;
     email: string;
     name: string;
+    username?: string;
     avatar?: string;
 }
 
@@ -72,6 +73,24 @@ export function useAuth() {
         window.dispatchEvent(new Event("auth-change"));
     }, []);
 
+    // Function to update user data
+    const updateUser = useCallback((userData: Partial<User>) => {
+        const storedUser = localStorage.getItem("user");
+        if (!storedUser) return;
+
+        try {
+            const currentUser = JSON.parse(storedUser);
+            const updatedUser = { ...currentUser, ...userData };
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+            setUser(updatedUser);
+
+            // Dispatch custom event for same-tab updates
+            window.dispatchEvent(new Event("auth-change"));
+        } catch (error) {
+            console.error("Error updating user data:", error);
+        }
+    }, []);
+
     // Logout function
     const logout = useCallback(() => {
         localStorage.removeItem("user");
@@ -89,6 +108,7 @@ export function useAuth() {
         loading,
         logout,
         setUserData,
+        updateUser,
         isAuthenticated: !!user
     };
 }
