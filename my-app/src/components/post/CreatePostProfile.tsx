@@ -17,8 +17,11 @@ import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 interface CreatePostProfileProps {
   onCreatePost?: (postData: {
     content: string;
-    media: { url: string; type: "image" | "video" } | null;
+    media: { url: string; type: "image" | "video" }[];
     privacy: string;
+    feeling?: string;
+    location?: string;
+    taggedUserIds?: string[];
   }) => void;
 }
 
@@ -133,7 +136,7 @@ export function CreatePostProfile({ onCreatePost }: CreatePostProfileProps) {
     if (onCreatePost) {
       onCreatePost({
         content,
-        media: selectedMedia,
+        media: selectedMedia ? [selectedMedia] : [], // Backend doesn't support media yet
         privacy,
       });
     }

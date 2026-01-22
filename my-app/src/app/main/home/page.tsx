@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CreatePost } from "@/components/post/CreatePost";
 import { PostCard } from "@/components/post/PostCard";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/context/ToastContext";
+import { postAPI } from "@/services/post.service";
 
 interface Post {
   id: string;
   author: {
+    id?: string;
     name: string;
     avatar: string;
     username?: string;
@@ -23,96 +26,98 @@ interface Post {
 
 export default function HomePage() {
   const { user } = useAuth();
+  const { toast } = useToast();
 
-  const currentUser = {
-    name: user?.name || "Nguyễn Văn A",
-    avatar: user?.avatar || "/userAvatar.png",
-    username: user?.username || "@user"
-  };
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data for posts
-  const [posts, setPosts] = useState<Post[]>([
-    {
-      id: "1",
-      author: {
-        name: currentUser.name,
-        avatar: currentUser.avatar,
-        username: currentUser.username,
-      },
-      content:
-        "Hôm nay thời tiết thật đẹp! Đi chơi với bạn bè tại công viên.",
-      image:
-        "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=600&h=400&fit=crop",
-      likes: 245,
-      comments: 32,
-      shares: 12,
-      timestamp: "2 giờ trước",
-    },
-    {
-      id: "2",
-      author: {
-        name: "Trần Thị B",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=TranB",
-      },
-      content:
-        "Vừa hoàn thành một dự án quan trọng! Cảm thấy rất tự hào về kết quả.",
-      likes: 156,
-      comments: 18,
-      shares: 8,
-      timestamp: "4 giờ trước",
-    },
-    {
-      id: "3",
-      author: {
-        name: "Lê Minh C",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=LeMinh",
-      },
-      content: "Ai muốn đi ăn cơm tối nay không? Có quán ngon gần đây! 🍜",
-      likes: 89,
-      comments: 24,
-      shares: 5,
-      timestamp: "6 giờ trước",
-    },
-  ]);
+  const fetchPosts = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await postAPI.getPosts(1, 10);
+      interface PostData {
+        id: string;
+        author: {
+          id: string;
+          name: string;
+          avatarUrl: string;
+        };
+        content: string;
+        mediaUrls?: string[];
+        _count?: {
+          reactions?: number;
+          comments?: number;
+        };
+        createdAt: string;
+      }
+      
+      // Handle both paginated and non-paginated responses
+      const postsData = res.data || res;
+      if (!Array.isArray(postsData)) {
+        throw new Error('Invalid posts data format');
+      }
+      
+      const mappedPosts = postsData.map((p: PostData) => ({
+        id: p.id,
+        author: {
+          id: p.author.id,
+          name: p.author.name,
+          avatar: p.author.avatarUrl || "/userAvatar.png",
+          username: "@" + (p.author.name ? p.author.name.replace(/\s+/g, '').toLowerCase() : "user")
+        },
+        content: p.content,
+        image: p.mediaUrls && p.mediaUrls.length > 0 && !p.mediaUrls[0].endsWith(".mp4") ? p.mediaUrls[0] : undefined,
+        video: p.mediaUrls && p.mediaUrls.length > 0 && p.mediaUrls[0].endsWith(".mp4") ? p.mediaUrls[0] : undefined,
+        likes: p._count?.reactions || 0,
+        comments: p._count?.comments || 0,
+        shares: 0,
+        timestamp: new Date(p.createdAt).toLocaleString('vi-VN'),
+      }));
+      setPosts(mappedPosts);
+    } catch (error) {
+      console.error("Failed to fetch posts", error);
+      const errorMsg = error instanceof Error ? error.message : "Không thể tải bài viết";
+      toast(errorMsg, "error");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
 
-  // Modal states removed as PostCard handles confirmation internally
-
-  const handleCreatePost = (postData: {
-    content: string;
-    media: { url: string; type: "image" | "video" } | null;
-    privacy: string;
-  }) => {
-    const newPost: Post = {
-      id: Date.now().toString(),
-      author: {
-        name: currentUser.name,
-        avatar: currentUser.avatar,
-        username: currentUser.username,
-      },
-      content: postData.content,
-      image: postData.media?.type === "image" ? postData.media.url : undefined,
-      video: postData.media?.type === "video" ? postData.media.url : undefined,
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      timestamp: "Vừa xong",
-    };
-    setPosts([newPost, ...posts]);
-  };
-
-  // Sync the first post with logged in user
   useEffect(() => {
     if (user) {
-      setPosts(prev => prev.map(p => p.id === "1" ? {
-        ...p,
-        author: {
-          name: user.name,
-          avatar: user.avatar || "/userAvatar.png",
-          username: user.username || "@user"
-        }
-      } : p));
+      fetchPosts();
+    } else {
+      setIsLoading(false);
     }
-  }, [user]);
+  }, [user, fetchPosts]);
+
+  const handleCreatePost = async (postData: {
+    content: string;
+    media: { url: string; type: "image" | "video" }[];
+    privacy: string;
+    feeling?: string;
+    location?: string;
+    taggedUserIds?: string[];
+  }) => {
+    try {
+      await postAPI.createPost({
+        content: postData.content,
+        privacy: postData.privacy as "public" | "friends" | "private",
+        mediaUrls: [], // Backend doesn't support media uploads yet
+        feeling: postData.feeling,
+        location: postData.location,
+        taggedUserIds: postData.taggedUserIds
+      });
+
+      toast("Đăng bài viết thành công!", "success");
+      // Refresh posts list to show the newly created post
+      await fetchPosts();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Đăng bài viết thất bại";
+      toast(errorMessage, "error");
+      throw error;
+    }
+  };
 
   const handleDeletePost = (postId: string) => {
     setPosts(posts.filter((post) => post.id !== postId));
@@ -137,19 +142,23 @@ export default function HomePage() {
 
       {/* Posts Feed */}
       <div className="space-y-3">
-        {posts.map((post) => (
-          <PostCard
-            key={post.id}
-            {...post}
-            isOwner={!!(user && post.author.name === user.name)}
-            onDelete={() => handleDeletePost(post.id)}
-            onEdit={(newContent) => handleEditPost(post.id, newContent)}
-            onReport={() => handleReportPost(post.id)}
-          />
-        ))}
+        {isLoading ? (
+          <div className="text-center py-4 text-gray-500">Đang tải bài viết...</div>
+        ) : posts.length > 0 ? (
+          posts.map((post) => (
+            <PostCard
+              key={post.id}
+              {...post}
+              isOwner={!!(user && post.author.id === user.id)}
+              onDelete={() => handleDeletePost(post.id)}
+              onEdit={(newContent) => handleEditPost(post.id, newContent)}
+              onReport={() => handleReportPost(post.id)}
+            />
+          ))
+        ) : (
+          <div className="text-center py-4 text-gray-500">Chưa có bài viết nào.</div>
+        )}
       </div>
-
-      {/* Modals removed */}
     </div>
   );
 }

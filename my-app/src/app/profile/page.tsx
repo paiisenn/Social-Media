@@ -219,9 +219,13 @@ export default function ProfilePage() {
 
   const handleCreatePost = (postData: {
     content: string;
-    media: { url: string; type: "image" | "video" } | null;
+    media: { url: string; type: "image" | "video" }[];
     privacy: string;
+    feeling?: string;
+    location?: string;
+    taggedUserIds?: string[];
   }) => {
+    // Note: Backend doesn't support media uploads yet, only text content is saved
     const newPost = {
       id: Date.now().toString(),
       author: {
@@ -230,8 +234,6 @@ export default function ProfilePage() {
         username: username,
       },
       content: postData.content,
-      image: postData.media?.type === "image" ? postData.media.url : undefined,
-      video: postData.media?.type === "video" ? postData.media.url : undefined,
       likes: 0,
       comments: 0,
       shares: 0,
