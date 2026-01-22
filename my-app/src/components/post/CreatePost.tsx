@@ -47,6 +47,51 @@ const feelings = [
   { value: "RELAXED", label: "Thư giãn", emoji: "😌" },
 ];
 
+// Helper function to compress image
+async function compressImage(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(event.target?.result as string);
+          return;
+        }
+
+        // Set max dimensions
+        const maxWidth = 1200;
+        const maxHeight = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Compress to JPEG with quality 0.7
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+    };
+  });
+}
+
 const provinces = [
   "Hà Nội",
   "TP. Hồ Chí Minh",
@@ -216,12 +261,28 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      toast("Hiện tại chưa hỗ trợ tải ảnh/video. Bài viết sẽ chỉ có nội dung văn bản.", "info");
-      const newMedia = files.map(file => ({
-        url: URL.createObjectURL(file),
-        type: file.type.startsWith("video/") ? "video" : ("image" as "image" | "video")
-      }));
-      setSelectedMediaList(prev => [...prev, ...newMedia]);
+      files.forEach(file => {
+        // Only compress images, not videos
+        if (file.type.startsWith("image/")) {
+          compressImage(file).then(compressedUrl => {
+            setSelectedMediaList(prev => [...prev, {
+              url: compressedUrl,
+              type: "image" as "image" | "video"
+            }]);
+          });
+        } else {
+          // For videos, use original file as data URL
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const result = event.target?.result as string;
+            setSelectedMediaList(prev => [...prev, {
+              url: result,
+              type: "video" as "image" | "video"
+            }]);
+          };
+          reader.readAsDataURL(file);
+        }
+      });
       setIsModalOpen(true);
     }
   };
@@ -242,13 +303,30 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
     setIsDragging(false);
     const files = Array.from(e.dataTransfer.files || []);
     if (files.length > 0) {
-      const newMedia = files
+      files
         .filter(file => file.type.startsWith("image/") || file.type.startsWith("video/"))
-        .map(file => ({
-          url: URL.createObjectURL(file),
-          type: file.type.startsWith("video/") ? "video" : ("image" as "image" | "video")
-        }));
-      setSelectedMediaList(prev => [...prev, ...newMedia]);
+        .forEach(file => {
+          // Only compress images, not videos
+          if (file.type.startsWith("image/")) {
+            compressImage(file).then(compressedUrl => {
+              setSelectedMediaList(prev => [...prev, {
+                url: compressedUrl,
+                type: "image" as "image" | "video"
+              }]);
+            });
+          } else {
+            // For videos, use original file as data URL
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const result = event.target?.result as string;
+              setSelectedMediaList(prev => [...prev, {
+                url: result,
+                type: "video" as "image" | "video"
+              }]);
+            };
+            reader.readAsDataURL(file);
+          }
+        });
       setIsModalOpen(true);
     }
   };
@@ -299,17 +377,15 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
     if (onCreatePost) {
       try {
         setIsLoading(true);
-        // Note: Backend currently doesn't support image/video uploads
-        // Only send text content for now
         await onCreatePost({
           content,
-          media: [], // Don't send media - backend doesn't support it yet
+          media: selectedMediaList, // Send media URLs (data URLs for now)
           privacy,
           feeling: selectedFeeling?.value,
           location: selectedLocation || undefined,
           taggedUserIds: taggedUsers.map((u) => u.id),
         });
-        toast("Đăng bài viết thành công! (Ảnh/video sẽ được hỗ trợ sớm)", "success");
+        toast("Đăng bài viết thành công!", "success");
         // Reset form only on success
         setContent("");
         setSelectedMediaList([]);
@@ -572,7 +648,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                 ref={textareaRef}
                 placeholder={`Bạn đang nghĩ gì thế, ${user?.name || "Người dùng"
                   }?`}
-                className="w-full resize-none border border-gray-200 rounded-lg p-2 bg-transparent text-lg text-gray-900 placeholder-gray-500 focus:outline-none overflow-hidden min-h-20"
+                className="w-full resize-none border border-gray-200 rounded-lg p-2 bg-transparent text-gray-900 placeholder-gray-500 focus:outline-none overflow-hidden min-h-20"
                 autoFocus
                 value={content}
                 onChange={(e) => setContent(e.target.value)}

@@ -50,13 +50,13 @@ export default function HomePage() {
         };
         createdAt: string;
       }
-      
+
       // Handle both paginated and non-paginated responses
       const postsData = res.data || res;
       if (!Array.isArray(postsData)) {
         throw new Error('Invalid posts data format');
       }
-      
+
       const mappedPosts = postsData.map((p: PostData) => ({
         id: p.id,
         author: {
@@ -103,7 +103,7 @@ export default function HomePage() {
       await postAPI.createPost({
         content: postData.content,
         privacy: postData.privacy as "public" | "friends" | "private",
-        mediaUrls: [], // Backend doesn't support media uploads yet
+        mediaUrls: postData.media.map(m => m.url), // Send media URLs
         feeling: postData.feeling,
         location: postData.location,
         taggedUserIds: postData.taggedUserIds

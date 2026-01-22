@@ -31,6 +31,16 @@ export const postAPI = {
                 }),
             });
 
+            // Handle token expiration (401)
+            if (response.status === 401) {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('user');
+                    window.dispatchEvent(new Event('auth-change'));
+                }
+                throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            }
+
             if (!response.ok) {
                 const errorText = await response.text();
                 let errorMessage = 'Failed to create post';
@@ -61,6 +71,17 @@ export const postAPI = {
                     'Authorization': `Bearer ${token}`
                 },
             });
+
+            // Handle token expiration (401)
+            if (response.status === 401) {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('user');
+                    window.dispatchEvent(new Event('auth-change'));
+                }
+                // Return empty array so page can show guest mode instead of crashing
+                return { data: [] };
+            }
 
             if (!response.ok) {
                 const errorText = await response.text();

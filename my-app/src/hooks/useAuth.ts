@@ -92,7 +92,7 @@ export function useAuth() {
     }, []);
 
     // Logout function
-    const logout = useCallback(() => {
+    const logout = useCallback((shouldRedirect = true) => {
         localStorage.removeItem("user");
         localStorage.removeItem("access_token");
         setUser(null);
@@ -100,7 +100,9 @@ export function useAuth() {
         // Dispatch custom event for same-tab updates
         window.dispatchEvent(new Event("auth-change"));
 
-        router.push("/login");
+        if (shouldRedirect) {
+            router.push("/login");
+        }
     }, [router]);
 
     return {

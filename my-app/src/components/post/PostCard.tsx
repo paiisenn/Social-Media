@@ -149,6 +149,7 @@ export function PostCard({
     setIsMenuOpen(false);
   };
 
+
   const handleUndoHide = () => {
     setIsHidden(false);
   };

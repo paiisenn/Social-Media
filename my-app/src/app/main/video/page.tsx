@@ -22,7 +22,7 @@ interface Post {
 
 export default function VideoPage() {
   const currentUser = {
-    name: "Nguyễn Văn A",
+    name: "Dữ liệu của bạn bè",
     avatar: "/userAvatar.png",
   };
 
