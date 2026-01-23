@@ -20,12 +20,13 @@ import {
   Cake,
 } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
-import { useRef, useState, useEffect, useMemo } from "react";
+import { useRef, useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/app/main/layout";
-import { CreatePostProfile } from "@/components/post/CreatePostProfile";
+import { CreatePostSimple } from "@/components/post/CreatePostSimple";
 import { PostCard } from "@/components/post/PostCard";
 import { useAuth } from "@/hooks/useAuth";
+import { postAPI } from "@/services/post.service";
 
 // Helper function to generate username from name
 function generateUsername(name: string): string {
@@ -110,6 +111,7 @@ export default function ProfilePage() {
   // Update editing states removed (triggered by handleStartEditing instead)
 
   const [posts, setPosts] = useState(mockPosts);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
 
   const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -217,7 +219,67 @@ export default function ProfilePage() {
     }
   };
 
-  const handleCreatePost = (postData: {
+  const fetchPosts = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      setIsLoadingPosts(true);
+      // Fetch only current user's posts
+      const res = await postAPI.getUserPosts(user.id, 1, 10);
+      interface PostData {
+        id: string;
+        author: {
+          id: string;
+          name: string;
+          avatarUrl: string;
+        };
+        content: string;
+        mediaUrls?: string[];
+        _count?: {
+          reactions?: number;
+          comments?: number;
+        };
+        createdAt: string;
+      }
+
+      // Handle both paginated and non-paginated responses
+      const postsData = res.data || res;
+      if (!Array.isArray(postsData)) {
+        throw new Error('Invalid posts data format');
+      }
+
+      const mappedPosts = postsData.map((p: PostData) => ({
+        id: p.id,
+        author: {
+          name: p.author.name,
+          avatar: p.author.avatarUrl || "/userAvatar.png",
+          username: "@" + (p.author.name ? p.author.name.replace(/\s+/g, '').toLowerCase() : "user")
+        },
+        content: p.content,
+        image: p.mediaUrls && p.mediaUrls.length > 0 && !p.mediaUrls[0].endsWith(".mp4") ? p.mediaUrls[0] : undefined,
+        video: p.mediaUrls && p.mediaUrls.length > 0 && p.mediaUrls[0].endsWith(".mp4") ? p.mediaUrls[0] : undefined,
+        likes: p._count?.reactions || 0,
+        comments: p._count?.comments || 0,
+        shares: 0,
+        timestamp: new Date(p.createdAt).toLocaleString('vi-VN'),
+      }));
+      setPosts(mappedPosts);
+    } catch (error) {
+      console.error("Failed to fetch user posts", error);
+      const errorMsg = error instanceof Error ? error.message : "Không thể tải bài viết";
+      toast(errorMsg, "error");
+    } finally {
+      setIsLoadingPosts(false);
+    }
+  }, [user?.id, toast]);
+
+  useEffect(() => {
+    if (user) {
+      fetchPosts();
+    }
+  }, [user, fetchPosts]);
+
+  const handleCreatePost = async (postData: {
     content: string;
     media: { url: string; type: "image" | "video" }[];
     privacy: string;
@@ -225,33 +287,64 @@ export default function ProfilePage() {
     location?: string;
     taggedUserIds?: string[];
   }) => {
-    // Note: Backend doesn't support media uploads yet, only text content is saved
-    const newPost = {
-      id: Date.now().toString(),
-      author: {
-        name: userName,
-        avatar: userAvatar,
-        username: username,
-      },
-      content: postData.content,
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      timestamp: "Vừa xong",
-    };
-    setPosts([newPost, ...posts]);
+    try {
+      await postAPI.createPost({
+        content: postData.content,
+        privacy: postData.privacy as "public" | "friends" | "private",
+        mediaUrls: postData.media.map(m => m.url), // Send media URLs
+        feeling: postData.feeling,
+        location: postData.location,
+        taggedUserIds: postData.taggedUserIds
+      });
+
+      toast("Đăng bài viết thành công!", "success");
+      // Refresh posts list to show the newly created post
+      await fetchPosts();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Đăng bài viết thất bại";
+      toast(errorMessage, "error");
+      throw error;
+    }
   };
 
-  const handleDeletePost = (postId: string) => {
-    setPosts(posts.filter((post) => post.id !== postId));
+  const handleDeletePost = async (postId: string) => {
+    try {
+      // Call API to delete post
+      await postAPI.deletePost(postId);
+      toast("Xóa bài viết thành công!", "success");
+      // Refresh posts list from backend
+      await fetchPosts();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Xóa bài viết thất bại";
+      toast(errorMessage, "error");
+      console.error("Failed to delete post:", error);
+    }
   };
 
-  const handleEditPost = (postId: string, newContent: string) => {
-    setPosts(
-      posts.map((post) =>
-        post.id === postId ? { ...post, content: newContent } : post
-      )
-    );
+  const handleEditPost = async (postId: string, newContent: string) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payload: any = {};
+
+      if (newContent?.trim()) {
+        payload.content = newContent;
+      }
+
+      // Sau này nếu có taggedUserIds
+      // if (taggedUserIds?.length > 0) {
+      //   payload.taggedUserIds = taggedUserIds;
+      // }
+
+      await postAPI.updatePost(postId, payload);
+
+      toast("Cập nhật bài viết thành công!", "success");
+      await fetchPosts();
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Cập nhật bài viết thất bại";
+      toast(errorMessage, "error");
+      console.error("Failed to update post:", error);
+    }
   };
 
   const handleReportPost = (_postId: string) => {
@@ -288,7 +381,7 @@ export default function ProfilePage() {
           </div>
         </div>
       ) : (
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-2 max-w-6xl">
           {/* Cover Photo Section */}
           <div className="relative mb-4 overflow-hidden rounded-lg bg-white shadow-sm">
             {/* Cover Image */}
@@ -580,7 +673,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="mb-6 rounded-lg bg-white shadow-sm">
+          <div className="mb-4 rounded-lg bg-white shadow-sm">
             <div className="relative flex border-b border-gray-200 overflow-x-auto">
               {tabs.map((tab, index) => (
                 <button
@@ -616,23 +709,29 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   {/* Create Post - Only show if own profile */}
                   {user && (
-                    <CreatePostProfile onCreatePost={handleCreatePost} />
+                    <CreatePostSimple onCreatePost={handleCreatePost} />
                   )}
 
                   {/* Posts Feed */}
                   <div className="space-y-4">
-                    {posts.map((post) => (
-                      <PostCard
-                        key={post.id}
-                        {...post}
-                        isOwner={!!user}
-                        onDelete={() => handleDeletePost(post.id)}
-                        onEdit={(newContent) =>
-                          handleEditPost(post.id, newContent)
-                        }
-                        onReport={() => handleReportPost(post.id)}
-                      />
-                    ))}
+                    {isLoadingPosts ? (
+                      <div className="text-center py-4 text-gray-500">Đang tải bài viết...</div>
+                    ) : posts.length > 0 ? (
+                      posts.map((post) => (
+                        <PostCard
+                          key={post.id}
+                          {...post}
+                          isOwner={!!user}
+                          onDelete={() => handleDeletePost(post.id)}
+                          onEdit={(newContent) =>
+                            handleEditPost(post.id, newContent)
+                          }
+                          onReport={() => handleReportPost(post.id)}
+                        />
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-gray-500">Chưa có bài viết nào.</div>
+                    )}
                   </div>
                 </div>
               )}

@@ -3,7 +3,6 @@
 import {
   Image as ImageIcon,
   Video,
-  Plus,
   X,
   Globe,
   ChevronDown,
@@ -18,11 +17,9 @@ import {
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
-import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/hooks/useAuth";
-import { AuthPromptModal } from "@/components/ui/AuthPromptModal";
 
-interface CreatePostProps {
+interface CreatePostSimpleProps {
   onCreatePost?: (postData: {
     content: string;
     media: { url: string; type: "image" | "video" }[];
@@ -30,7 +27,6 @@ interface CreatePostProps {
     feeling?: string;
     location?: string;
     taggedUserIds?: string[];
-    gifUrl?: string;
   }) => Promise<void> | void;
 }
 
@@ -56,8 +52,8 @@ async function compressImage(file: File): Promise<string> {
       const img = new window.Image();
       img.src = event.target?.result as string;
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
         if (!ctx) {
           resolve(event.target?.result as string);
           return;
@@ -86,7 +82,7 @@ async function compressImage(file: File): Promise<string> {
         ctx.drawImage(img, 0, 0, width, height);
 
         // Compress to JPEG with quality 0.7
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
       };
     };
   });
@@ -158,16 +154,15 @@ const provinces = [
   "Yên Bái",
 ].sort();
 
-export function CreatePost({ onCreatePost }: CreatePostProps) {
-  const { toast } = useToast();
-  const { user, isAuthenticated } = useAuth();
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authFeature, setAuthFeature] = useState("");
+export function CreatePostSimple({ onCreatePost }: CreatePostSimpleProps) {
+  const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedMediaList, setSelectedMediaList] = useState<{
-    url: string;
-    type: "image" | "video";
-  }[]>([]);
+  const [selectedMediaList, setSelectedMediaList] = useState<
+    {
+      url: string;
+      type: "image" | "video";
+    }[]
+  >([]);
   const [privacy, setPrivacy] = useState<"public" | "friends" | "private">(
     "public",
   );
@@ -179,14 +174,15 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
     (typeof feelings)[0] | null
   >(null);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  const [taggedUsers, setTaggedUsers] = useState<{ id: string; name: string }[]>(
-    [],
-  );
+  const [taggedUsers, setTaggedUsers] = useState<
+    { id: string; name: string }[]
+  >([]);
   const [showFeelingSelector, setShowFeelingSelector] = useState(false);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
   const [showTagFriendsSelector, setShowTagFriendsSelector] = useState(false);
   const [searchFriend, setSearchFriend] = useState("");
   const [searchLocation, setSearchLocation] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -195,7 +191,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
   const tagFriendsRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Xử lý click outside để đóng emoji picker
+  // Handle click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -230,7 +226,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
     };
   }, []);
 
-  // Tự động điều chỉnh chiều cao textarea theo nội dung
+  // Auto-resize textarea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -241,44 +237,34 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
 
   const handleImageClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isAuthenticated) {
-      setAuthFeature("đăng ảnh/video");
-      setShowAuthModal(true);
-      return;
-    }
     fileInputRef.current?.click();
-  };
-
-  const handleOpenModal = () => {
-    if (!isAuthenticated) {
-      setAuthFeature("tạo bài viết");
-      setShowAuthModal(true);
-      return;
-    }
-    setIsModalOpen(true);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      files.forEach(file => {
-        // Only compress images, not videos
+      files.forEach((file) => {
         if (file.type.startsWith("image/")) {
-          compressImage(file).then(compressedUrl => {
-            setSelectedMediaList(prev => [...prev, {
-              url: compressedUrl,
-              type: "image" as "image" | "video"
-            }]);
+          compressImage(file).then((compressedUrl) => {
+            setSelectedMediaList((prev) => [
+              ...prev,
+              {
+                url: compressedUrl,
+                type: "image" as "image" | "video",
+              },
+            ]);
           });
         } else {
-          // For videos, use original file as data URL
           const reader = new FileReader();
           reader.onload = (event) => {
             const result = event.target?.result as string;
-            setSelectedMediaList(prev => [...prev, {
-              url: result,
-              type: "video" as "image" | "video"
-            }]);
+            setSelectedMediaList((prev) => [
+              ...prev,
+              {
+                url: result,
+                type: "video" as "image" | "video",
+              },
+            ]);
           };
           reader.readAsDataURL(file);
         }
@@ -287,7 +273,6 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
     }
   };
 
-  // Xử lý kéo thả
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -304,25 +289,32 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
     const files = Array.from(e.dataTransfer.files || []);
     if (files.length > 0) {
       files
-        .filter(file => file.type.startsWith("image/") || file.type.startsWith("video/"))
-        .forEach(file => {
-          // Only compress images, not videos
+        .filter(
+          (file) =>
+            file.type.startsWith("image/") || file.type.startsWith("video/"),
+        )
+        .forEach((file) => {
           if (file.type.startsWith("image/")) {
-            compressImage(file).then(compressedUrl => {
-              setSelectedMediaList(prev => [...prev, {
-                url: compressedUrl,
-                type: "image" as "image" | "video"
-              }]);
+            compressImage(file).then((compressedUrl) => {
+              setSelectedMediaList((prev) => [
+                ...prev,
+                {
+                  url: compressedUrl,
+                  type: "image" as "image" | "video",
+                },
+              ]);
             });
           } else {
-            // For videos, use original file as data URL
             const reader = new FileReader();
             reader.onload = (event) => {
               const result = event.target?.result as string;
-              setSelectedMediaList(prev => [...prev, {
-                url: result,
-                type: "video" as "image" | "video"
-              }]);
+              setSelectedMediaList((prev) => [
+                ...prev,
+                {
+                  url: result,
+                  type: "video" as "image" | "video",
+                },
+              ]);
             };
             reader.readAsDataURL(file);
           }
@@ -331,7 +323,6 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
     }
   };
 
-  // Khóa cuộn trang khi modal mở
   useEffect(() => {
     if (isModalOpen) {
       document.body.style.overflow = "hidden";
@@ -366,11 +357,8 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
     }
   };
 
-  const [isLoading, setIsLoading] = useState(false);
-
   const handlePost = async () => {
     if (!content.trim() && selectedMediaList.length === 0) {
-      toast("Nội dung bài viết không được để trống!", "info");
       return;
     }
 
@@ -379,13 +367,13 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
         setIsLoading(true);
         await onCreatePost({
           content,
-          media: selectedMediaList, // Send media URLs (data URLs for now)
+          media: selectedMediaList,
           privacy,
           feeling: selectedFeeling?.value,
           location: selectedLocation || undefined,
           taggedUserIds: taggedUsers.map((u) => u.id),
         });
-        // Reset form only on success
+        // Reset form
         setContent("");
         setSelectedMediaList([]);
         setPrivacy("public");
@@ -395,7 +383,6 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
         setIsModalOpen(false);
       } catch (error) {
         console.error(error);
-        toast("Lỗi khi đăng bài viết. Vui lòng thử lại!", "error");
       } finally {
         setIsLoading(false);
       }
@@ -404,11 +391,11 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
 
   return (
     <>
+      {/* Simple Create Post Card - NO STORIES */}
       <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        {/* Khu vực 1: Avatar + Input */}
-        <div className="flex items-center gap-4 pb-4">
+        <div className="flex items-center gap-4">
           {/* Avatar */}
-          <div className="h-12 w-12 shrink-0 rounded-full bg-linear-to-br from-[#fb923c] to-[#f9622e] overflow-hidden">
+          <div className="h-12 w-12 cursor-pointer shrink-0 rounded-full bg-linear-to-br from-[#fb923c] to-[#f9622e] overflow-hidden">
             <Image
               src={user?.avatar || "/userAvatar.png"}
               alt="User"
@@ -418,10 +405,10 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
             />
           </div>
 
-          {/* Input Area với Icons ở cuối */}
+          {/* Input Area */}
           <div
             className="flex flex-1 items-center rounded-full border border-gray-300 bg-gray-100 px-4 py-2 duration-200 transition-all hover:bg-gray-200 cursor-pointer"
-            onClick={handleOpenModal}
+            onClick={() => setIsModalOpen(true)}
           >
             <span className="flex-1 text-gray-500 select-none">
               Bạn đang nghĩ gì?
@@ -448,42 +435,6 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
             </div>
           </div>
         </div>
-
-        {/* Underline phân cách */}
-        <div className="border-b border-gray-200" />
-
-        {/* Khu vực 2: Tin (Stories) - Kéo ngang */}
-        <div className="mt-4 flex gap-3 overflow-x-auto pb-4 cursor-grab active:cursor-grabbing [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#f9622e] [&::-webkit-scrollbar-button]:hidden">
-          {/* Tạo tin */}
-          <div className="relative h-48 w-32 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-gray-50 transition hover:opacity-90">
-            <div className="h-2/3 bg-linear-to-br from-[#fb923c] to-[#f9622e] opacity-80"></div>
-            <div className="absolute bottom-0 flex h-1/3 w-full flex-col items-center justify-end pb-2 bg-white">
-              <span className="text-xs font-medium text-gray-700">Tạo tin</span>
-            </div>
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 rounded-full border-4 border-white bg-[#f9622e] p-1 text-white">
-              <Plus size={20} />
-            </div>
-          </div>
-
-          {/* Tin của người khác (Mockup) */}
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="relative h-48 w-32 shrink-0 cursor-pointer overflow-hidden rounded-xl bg-gray-200 transition hover:opacity-90"
-            >
-              <div
-                className={`h-full w-full bg-linear-to-b ${i % 2 === 0
-                  ? "from-purple-500 to-pink-500"
-                  : "from-yellow-400 to-orange-500"
-                  }`}
-              />
-              <div className="absolute top-3 left-3 h-10 w-10 rounded-full border-4 border-[#f9622e] bg-gray-300" />
-              <div className="absolute bottom-3 left-3 text-xs font-medium text-white drop-shadow-md">
-                Người dùng {i}
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
 
       <input
@@ -495,9 +446,9 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
         onChange={handleFileChange}
       />
 
-      {/* Modal Tạo bài viết */}
+      {/* Modal - Same as CreatePost but without Stories section */}
       {isModalOpen && (
-        <div className="fixed -top-3 inset-0 z-50 flex items-center justify-center bg-black/60 px-4 animate-in fade-in duration-200">
+        <div className="fixed -top-3 -bottom-5 inset-0 z-50 flex items-center justify-center bg-black/60 px-4 animate-in fade-in duration-200">
           <div className="flex mt-2 min-h-125 max-h-[95vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl animate-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="relative border-b border-gray-200 py-4 text-center">
@@ -510,12 +461,13 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
               </button>
             </div>
 
-            {/* Body */}
+            {/* Body - Same structure as CreatePost modal */}
             <div
-              className={`flex-1 overflow-y-auto p-4 ${isDragging
-                ? "bg-[#fef2ee] border-2 border-dashed border-[#fb923c]"
-                : ""
-                }`}
+              className={`flex-1 overflow-y-auto p-4 ${
+                isDragging
+                  ? "bg-[#fef2ee] border-2 border-dashed border-[#fb923c]"
+                  : ""
+              }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
@@ -583,10 +535,11 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                                   setPrivacy(key);
                                   setIsPrivacyOpen(false);
                                 }}
-                                className={`flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 ${privacy === key
-                                  ? "bg-[#fef2ee] text-[#f9622e]"
-                                  : "text-gray-700"
-                                  }`}
+                                className={`flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 ${
+                                  privacy === key
+                                    ? "bg-[#fef2ee] text-[#f9622e]"
+                                    : "text-gray-700"
+                                }`}
                               >
                                 <OptionIcon size={14} />
                                 {privacyOptions[key].label}
@@ -601,10 +554,11 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                 {/* Character Counter */}
                 <div className="ml-auto shrink-0">
                   <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${remainingChars === 0
-                      ? "border-red-500 bg-red-50"
-                      : "border-gray-100"
-                      }`}
+                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
+                      remainingChars === 0
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-100"
+                    }`}
                   >
                     <span className={`text-sm font-bold ${getCounterColor()}`}>
                       {remainingChars}
@@ -645,8 +599,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
               {/* Input */}
               <textarea
                 ref={textareaRef}
-                placeholder={`Bạn đang nghĩ gì thế, ${user?.name || "Người dùng"
-                  }?`}
+                placeholder={`Bạn đang nghĩ gì thế, ${user?.name || "Người dùng"}?`}
                 className="w-full resize-none border border-gray-200 rounded-lg p-2 bg-transparent text-gray-900 placeholder-gray-500 focus:outline-none overflow-hidden min-h-20"
                 autoFocus
                 value={content}
@@ -654,28 +607,48 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                 maxLength={MAX_CHARS}
               />
 
-              {/* Image Preview Grid */}
+              {/* Media Preview - Same as CreatePost */}
               {selectedMediaList.length > 0 && (
                 <div className="relative mt-3">
-                  <div className={`grid gap-1.5 overflow-hidden rounded-xl border border-gray-200 ${selectedMediaList.length === 1 ? "grid-cols-1" :
-                    selectedMediaList.length === 2 ? "grid-cols-2 h-72" :
-                      selectedMediaList.length === 3 ? "grid-cols-2 grid-rows-2 h-96" :
-                        "grid-cols-2 grid-rows-2 h-96"
-                    }`}>
+                  <div
+                    className={`grid gap-1.5 overflow-hidden rounded-xl border border-gray-200 ${
+                      selectedMediaList.length === 1
+                        ? "grid-cols-1"
+                        : selectedMediaList.length === 2
+                          ? "grid-cols-2 h-72"
+                          : selectedMediaList.length === 3
+                            ? "grid-cols-2 grid-rows-2 h-96"
+                            : "grid-cols-2 grid-rows-2 h-96"
+                    }`}
+                  >
                     {selectedMediaList.slice(0, 4).map((media, index) => (
                       <div
                         key={index}
-                        className={`relative bg-black group ${selectedMediaList.length === 3 && index === 0 ? "row-span-2 h-full" : ""
-                          }`}
+                        className={`relative bg-black group ${
+                          selectedMediaList.length === 3 && index === 0
+                            ? "row-span-2 h-full"
+                            : ""
+                        }`}
                       >
                         {media.type === "video" ? (
-                          <video src={media.url} className="h-full w-full object-cover" />
+                          <video
+                            src={media.url}
+                            className="h-full w-full object-cover"
+                          />
                         ) : (
-                          <img src={media.url} alt={`Preview ${index}`} className="h-full w-full object-cover" />
+                          <img
+                            src={media.url}
+                            alt={`Preview ${index}`}
+                            className="h-full w-full object-cover"
+                          />
                         )}
 
                         <button
-                          onClick={() => setSelectedMediaList(prev => prev.filter((_, i) => i !== index))}
+                          onClick={() =>
+                            setSelectedMediaList((prev) =>
+                              prev.filter((_, i) => i !== index),
+                            )
+                          }
                           className="absolute right-2 cursor-pointer top-2 z-10 hidden group-hover:flex rounded-full bg-black/50 p-1.5 text-white hover:bg-black/70 shadow-sm transition-all"
                         >
                           <X size={14} />
@@ -700,13 +673,13 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                     onClick={() => fileInputRef.current?.click()}
                     className="mt-2 cursor-pointer flex items-center duration-200 gap-2 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
                   >
-                    <Plus size={16} /> Thêm ảnh/video
+                    <ImageIcon size={16} /> Thêm ảnh/video
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Add to post */}
+            {/* Add to post - Complete feature set like CreatePost */}
             <div className="px-4 py-2">
               <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-1.5 shadow-sm">
                 <span className="text-sm font-medium text-gray-700">
@@ -757,7 +730,7 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                             "Quỳnh Chi",
                             "Thanh Thảo",
                             "Hoàng Nam",
-                            "Phương Linh"
+                            "Phương Linh",
                           ]
                             .filter((name) =>
                               name
@@ -765,13 +738,17 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                                 .includes(searchFriend.toLowerCase()),
                             )
                             .map((name, i) => {
-                              const isTagged = taggedUsers.find((u) => u.name === name);
+                              const isTagged = taggedUsers.find(
+                                (u) => u.name === name,
+                              );
                               return (
                                 <button
                                   key={i}
                                   onClick={() => {
                                     if (isTagged) {
-                                      setTaggedUsers(prev => prev.filter(u => u.name !== name));
+                                      setTaggedUsers((prev) =>
+                                        prev.filter((u) => u.name !== name),
+                                      );
                                     } else {
                                       setTaggedUsers([
                                         ...taggedUsers,
@@ -789,9 +766,16 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                                       {name}
                                     </span>
                                   </div>
-                                  <div className={`h-5 w-5 cursor-pointer rounded-full border flex items-center justify-center transition-colors ${isTagged ? "bg-[#f9622e] border-[#f9622e]" : "border-gray-300"
-                                    }`}>
-                                    {isTagged && <Users size={12} className="text-white" />}
+                                  <div
+                                    className={`h-5 w-5 cursor-pointer rounded-full border flex items-center justify-center transition-colors ${
+                                      isTagged
+                                        ? "bg-[#f9622e] border-[#f9622e]"
+                                        : "border-gray-300"
+                                    }`}
+                                  >
+                                    {isTagged && (
+                                      <Users size={12} className="text-white" />
+                                    )}
                                   </div>
                                 </button>
                               );
@@ -859,20 +843,29 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                         </div>
                         <div className="px-2 pb-2">
                           <div className="relative">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                            <Search
+                              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+                              size={14}
+                            />
                             <input
                               type="text"
                               placeholder="Tìm kiếm vị trí..."
                               className="w-full rounded-lg bg-gray-100 py-1.5 pl-8 pr-4 text-xs focus:outline-none focus:ring-1 focus:ring-[#f9622e]"
                               value={searchLocation}
-                              onChange={(e) => setSearchLocation(e.target.value)}
+                              onChange={(e) =>
+                                setSearchLocation(e.target.value)
+                              }
                               autoFocus
                             />
                           </div>
                         </div>
                         <div className="max-h-60 overflow-y-auto px-1">
                           {provinces
-                            .filter(p => p.toLowerCase().includes(searchLocation.toLowerCase()))
+                            .filter((p) =>
+                              p
+                                .toLowerCase()
+                                .includes(searchLocation.toLowerCase()),
+                            )
                             .map((p) => (
                               <button
                                 key={p}
@@ -887,7 +880,11 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                                 {p}
                               </button>
                             ))}
-                          {provinces.filter(p => p.toLowerCase().includes(searchLocation.toLowerCase())).length === 0 && (
+                          {provinces.filter((p) =>
+                            p
+                              .toLowerCase()
+                              .includes(searchLocation.toLowerCase()),
+                          ).length === 0 && (
                             <div className="p-4 text-center text-xs text-gray-500">
                               Không tìm thấy vị trí nào
                             </div>
@@ -903,25 +900,6 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
                   >
                     <GifIcon size={24} />
                   </button>
-
-                  <div className="relative" ref={emojiPickerRef}>
-                    <button
-                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      className="rounded-full cursor-pointer p-2 text-gray-500 hover:bg-gray-100"
-                      title="Emoji"
-                    >
-                      <Smile size={24} />
-                    </button>
-                    {showEmojiPicker && (
-                      <div className="absolute bottom-full right-0 z-50 mb-2">
-                        <EmojiPicker
-                          onEmojiClick={onEmojiClick}
-                          width={300}
-                          height={400}
-                        />
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
@@ -930,7 +908,11 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
             <div className="border-t border-gray-100 p-4">
               <button
                 onClick={handlePost}
-                className="w-full rounded-lg cursor-pointer bg-[#f9622e] py-2 font-semibold text-white transition-colors hover:bg-[#d84e1e] disabled:bg-gray-300 disabled:text-gray-500"
+                disabled={
+                  isLoading ||
+                  (!content.trim() && selectedMediaList.length === 0)
+                }
+                className="w-full rounded-lg cursor-pointer bg-[#f9622e] py-2 font-semibold text-white transition-colors hover:bg-[#d84e1e] disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Đang đăng..." : "Đăng"}
               </button>
@@ -938,12 +920,6 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
           </div>
         </div>
       )}
-
-      <AuthPromptModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        feature={authFeature}
-      />
     </>
   );
 }

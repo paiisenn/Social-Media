@@ -199,7 +199,7 @@ export function CreatePostProfile({ onCreatePost }: CreatePostProfileProps) {
 
       {/* Modal Tạo bài viết */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in duration-200">
+        <div className="fixed -top-3 inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in duration-200">
           <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-white shadow-2xl animate-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="relative border-b border-gray-200 py-4 text-center">

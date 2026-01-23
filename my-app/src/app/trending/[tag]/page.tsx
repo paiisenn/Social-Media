@@ -13,6 +13,11 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/context/ToastContext";
+import { AuthPromptModal } from "@/components/ui/AuthPromptModal";
+import { EyeOff, Flag, Check, Edit, Trash2 } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 // Mock data for posts
 const initialMockPosts = [
@@ -51,8 +56,8 @@ const initialMockPosts = [
         shares: 1500,
         timestamp: "5 giờ trước",
         tags: ["amnhac", "vietnam"],
-        isSaved: true,
-        isLiked: true,
+        isSaved: false,
+        isLiked: false,
     },
     {
         id: 3,
@@ -194,8 +199,29 @@ export default function TrendingPage({
     // Unwrap params using use() hook
     const { tag } = use(params);
     const router = useRouter();
+    const { isAuthenticated } = useAuth();
+    const { toast } = useToast();
     const [activeFilter, setActiveFilter] = useState("top");
     const [posts, setPosts] = useState(initialMockPosts);
+
+    // Auth modal state
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [authModalFeature, setAuthModalFeature] = useState("");
+
+    // Dropdown state
+    const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setOpenMenuId(null);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const tagName = getTagName(tag);
     const tagDesc = getTagDescription(tag);
@@ -213,29 +239,73 @@ export default function TrendingPage({
         return p.tags.includes(tag);
     });
 
+    const handleActionWithAuth = (feature: string, action: () => void) => {
+        if (!isAuthenticated) {
+            setAuthModalFeature(feature);
+            setShowAuthModal(true);
+            return;
+        }
+        action();
+    };
+
     const handleLike = (id: number) => {
-        setPosts(prev => prev.map(post => {
-            if (post.id === id) {
-                return {
-                    ...post,
-                    isLiked: !post.isLiked,
-                    likes: post.isLiked ? post.likes - 1 : post.likes + 1
-                };
-            }
-            return post;
-        }));
+        handleActionWithAuth("thích bài viết", () => {
+            setPosts(prev => prev.map(post => {
+                if (post.id === id) {
+                    return {
+                        ...post,
+                        isLiked: !post.isLiked,
+                        likes: post.isLiked ? post.likes - 1 : post.likes + 1
+                    };
+                }
+                return post;
+            }));
+        });
     };
 
     const handleSave = (id: number) => {
-        setPosts(prev => prev.map(post => {
-            if (post.id === id) {
-                return {
-                    ...post,
-                    isSaved: !post.isSaved
-                };
-            }
-            return post;
-        }));
+        handleActionWithAuth("lưu bài viết", () => {
+            setPosts(prev => prev.map(post => {
+                if (post.id === id) {
+                    return {
+                        ...post,
+                        isSaved: !post.isSaved
+                    };
+                }
+                return post;
+            }));
+            toast("Đã cập nhật danh sách lưu trữ!", "success");
+        });
+    };
+
+    const handleComment = (id: number) => {
+        handleActionWithAuth("bình luận trên bài viết", () => {
+            // Logic for opening comment section/page
+            toast("Tính năng bình luận đang được phát triển!", "info");
+        });
+    };
+
+    const handleShare = (id: number) => {
+        // Share usually doesn't require login, but consistent with user request to fix "bug được share"
+        handleActionWithAuth("chia sẻ bài viết", () => {
+            // Logic for sharing
+            toast("Đã sao chép liên kết bài viết!", "success");
+        });
+    };
+
+    const handleHide = (id: number) => {
+        handleActionWithAuth("ẩn bài viết", () => {
+            setPosts(prev => prev.filter(post => post.id !== id));
+            toast("Đã ẩn bài viết thành công!", "success");
+            setOpenMenuId(null);
+        });
+    };
+
+    const handleReport = (id: number) => {
+        handleActionWithAuth("báo cáo bài viết", () => {
+            toast("Đã gửi báo cáo vi phạm. Cảm ơn bạn đã phản hồi!", "success");
+            setOpenMenuId(null);
+        });
     };
 
     return (
@@ -292,8 +362,8 @@ export default function TrendingPage({
                             key={filter}
                             onClick={() => setActiveFilter(filter)}
                             className={`px-5 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${activeFilter === filter
-                                    ? "bg-[#f9622e] text-white shadow-md shadow-orange-200"
-                                    : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+                                ? "bg-[#f9622e] text-white shadow-md shadow-orange-200"
+                                : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
                                 }`}
                         >
                             {filter === "top" && "Hàng đầu"}
@@ -335,9 +405,33 @@ export default function TrendingPage({
                                             </p>
                                         </div>
                                     </div>
-                                    <button className="p-2 text-gray-400 hover:bg-gray-50 rounded-full transition-colors cursor-pointer">
-                                        <MoreHorizontal className="w-5 h-5" />
-                                    </button>
+                                    <div className="relative" ref={openMenuId === post.id ? menuRef : null}>
+                                        <button
+                                            onClick={() => setOpenMenuId(openMenuId === post.id ? null : post.id)}
+                                            className="p-2 text-gray-400 hover:bg-gray-50 rounded-full transition-colors cursor-pointer outline-none"
+                                        >
+                                            <MoreHorizontal className="w-5 h-5" />
+                                        </button>
+
+                                        {openMenuId === post.id && (
+                                            <div className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg animate-in fade-in zoom-in-95 duration-200">
+                                                <button
+                                                    onClick={() => handleHide(post.id)}
+                                                    className="flex w-full items-center cursor-pointer gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left font-medium"
+                                                >
+                                                    <EyeOff size={16} />
+                                                    Ẩn bài viết
+                                                </button>
+                                                <button
+                                                    onClick={() => handleReport(post.id)}
+                                                    className="flex w-full items-center cursor-pointer gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors text-left font-medium"
+                                                >
+                                                    <Flag size={16} />
+                                                    Báo cáo
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Content */}
@@ -373,7 +467,10 @@ export default function TrendingPage({
                                         </button>
 
                                         {/* Comment Button */}
-                                        <button className="flex items-center gap-2 text-gray-500 hover:text-blue-500 transition-colors group cursor-pointer">
+                                        <button
+                                            onClick={() => handleComment(post.id)}
+                                            className="flex items-center gap-2 text-gray-500 hover:text-blue-500 transition-colors group cursor-pointer"
+                                        >
                                             <div className="p-2 rounded-full group-hover:bg-blue-50 transition-colors">
                                                 <MessageCircle className="w-5 h-5 group-active:scale-90 transition-transform" />
                                             </div>
@@ -383,7 +480,10 @@ export default function TrendingPage({
                                         </button>
 
                                         {/* Share Button (Updated Icon to Share) */}
-                                        <button className="flex items-center gap-2 text-gray-500 hover:text-green-500 transition-colors group cursor-pointer">
+                                        <button
+                                            onClick={() => handleShare(post.id)}
+                                            className="flex items-center gap-2 text-gray-500 hover:text-green-500 transition-colors group cursor-pointer"
+                                        >
                                             <div className="p-2 rounded-full group-hover:bg-green-50 transition-colors">
                                                 <Share className="w-5 h-5 group-active:scale-90 transition-transform" />
                                             </div>
@@ -406,6 +506,12 @@ export default function TrendingPage({
                     )}
                 </div>
             </div>
+
+            <AuthPromptModal
+                isOpen={showAuthModal}
+                onClose={() => setShowAuthModal(false)}
+                feature={authModalFeature}
+            />
         </MainLayout>
     );
 }

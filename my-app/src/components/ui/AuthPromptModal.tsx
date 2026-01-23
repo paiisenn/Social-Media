@@ -13,7 +13,7 @@ export function AuthPromptModal({ isOpen, onClose, feature }: AuthPromptModalPro
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 -top-3 left-0 right-0 -bottom-3 z-50 flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 -top-3 left-0 right-0 -bottom-5 z-50 flex items-center justify-center overflow-hidden">
       {/* Backdrop */}
       <div
         className="absolute inset-0 top-0 left-0 right-0 bottom-0 bg-black/50 animate-in fade-in duration-200"

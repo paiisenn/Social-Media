@@ -131,7 +131,6 @@ export function PostCard({
       onEdit(editedContent);
     }
     setIsEditing(false);
-    toast("Đã cập nhật bài viết thành công!", "success");
   };
 
   const handleCancelEdit = () => {
@@ -178,7 +177,6 @@ export function PostCard({
   const confirmDelete = () => {
     onDelete?.();
     setShowDeleteModal(false);
-    toast("Đã xóa bài viết thành công!", "success");
   };
 
   const handleSubmitComment = () => {
