@@ -1,11 +1,16 @@
 import { useState, useRef, useEffect } from "react";
-import { Phone, Video, MoreVertical, User, BellOff, Ban, Trash2, Search, X } from "lucide-react";
+import { Phone, Video, MoreVertical, User, BellOff, Ban, Trash2, Search, X, ChevronUp, ChevronDown } from "lucide-react";
 
 interface ChatHeaderProps {
   name: string;
   avatar: string;
   status: string;
   lastActive?: string;
+  onSearch?: (query: string) => void;
+  currentMatchIndex?: number;
+  totalMatches?: number;
+  onNextMatch?: () => void;
+  onPrevMatch?: () => void;
 }
 
 export function ChatHeader({
@@ -13,6 +18,11 @@ export function ChatHeader({
   avatar,
   status,
   lastActive,
+  onSearch,
+  currentMatchIndex = 0,
+  totalMatches = 0,
+  onNextMatch,
+  onPrevMatch,
 }: ChatHeaderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -41,11 +51,19 @@ export function ChatHeader({
     }
   }, [isSearchOpen]);
 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onSearch?.(searchValue);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchValue, onSearch]);
+
   return (
-    <div className="border-b border-gray-200 bg-white px-6 py-2 flex items-center justify-between shadow-sm z-10">
+    <div className="border-b border-gray-200 bg-white px-6 py-2  flex items-center justify-between shadow-sm z-10">
       {isSearchOpen ? (
         <div className="flex-1 flex items-center gap-3 animate-in fade-in duration-200">
-          <div className="relative flex-1">
+          <div className="relative flex-1 my-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
               ref={searchInputRef}
@@ -53,11 +71,29 @@ export function ChatHeader({
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               placeholder="Tìm kiếm tin nhắn..."
-              className="w-full bg-gray-100 text-gray-900 rounded-full py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-orange-500/70 text-sm"
+              className="w-full bg-gray-100 text-gray-900 rounded-full py-2 pl-10 pr-28 focus:outline-none focus:ring-2 focus:ring-orange-500/70 text-sm transition-all"
             />
+            
+            {searchValue && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <span className="text-xs font-medium text-gray-500">
+                  {totalMatches > 0 ? `${currentMatchIndex + 1}/${totalMatches}` : "0/0"}
+                </span>
+                <div className="h-4 w-px bg-gray-300 mx-1"></div>
+                <div className="flex items-center gap-1">
+                  <button type="button" onClick={onPrevMatch} className="p-0.5 hover:bg-gray-200 rounded cursor-pointer text-gray-600">
+                    <ChevronUp size={16} />
+                  </button>
+                  <button type="button" onClick={onNextMatch} className="p-0.5 hover:bg-gray-200 rounded cursor-pointer text-gray-600">
+                    <ChevronDown size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <button 
-            onClick={() => { setIsSearchOpen(false); setSearchValue(""); }}
+            type="button"
+            onClick={() => { setIsSearchOpen(false); setSearchValue(""); onSearch?.(""); }}
             className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors cursor-pointer"
           >
             <X size={20} />

@@ -16,53 +16,7 @@ import MainLayout from "@/app/main/layout";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-
-const mockNotifications = [
-  {
-    id: "n1",
-    type: "like",
-    user: { name: "Linh Nguyễn", avatar: "/userAvatar.png" },
-    action: "đã thích bài viết của bạn",
-    content: "Vừa hoàn thành việc xây dựng một ứng dụng mạng xã hội tuyệt vời...",
-    timestamp: "2024-12-23T10:30:00Z",
-    read: false,
-  },
-  {
-    id: "n2",
-    type: "comment",
-    user: { name: "Minh Phạm", avatar: "/userAvatar.png" },
-    action: "đã bình luận trên bài viết của bạn",
-    content: "Thật tuyệt vời! Bạn dùng công nghệ gì vậy?",
-    timestamp: "2024-12-23T09:15:00Z",
-    read: false,
-  },
-  {
-    id: "n3",
-    type: "follow",
-    user: { name: "Hà Anh", avatar: "/userAvatar.png" },
-    action: "đã bắt đầu theo dõi bạn",
-    timestamp: "2024-12-22T18:45:00Z",
-    read: true,
-  },
-  {
-    id: "n4",
-    type: "share",
-    user: { name: "Quốc Tuấn", avatar: "/userAvatar.png" },
-    action: "đã chia sẻ bài viết của bạn",
-    content: "Lập trình viên và người sáng tạo nội dung đầy đam mê...",
-    timestamp: "2024-12-22T14:20:00Z",
-    read: true,
-  },
-  {
-    id: "n5",
-    type: "system",
-    user: { name: "Hệ thống", avatar: "/SocialzZz-Logo.png" },
-    action: "Chào mừng bạn đến với SocialzZz",
-    content: "Hãy cập nhật hồ sơ của bạn để mọi người biết đến bạn nhiều hơn nhé!",
-    timestamp: "2024-12-20T08:00:00Z",
-    read: true,
-  },
-];
+import { notificationsAPI, Notification } from "@/services/notifications.service";
 
 function getNotificationIcon(type: string) {
   switch (type) {
@@ -123,43 +77,87 @@ function formatNotificationDate(dateString: string) {
 export default function NotificationsPage() {
   const router = useRouter();
   const { loading, isAuthenticated } = useAuth();
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Redirect to login if not authenticated
+  // Fetch notifications on component mount
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login");
+    const fetchNotifications = async () => {
+      if (!isAuthenticated) return;
+      
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await notificationsAPI.getNotifications();
+        setNotifications(Array.isArray(data) ? data : data.data || []);
+      } catch (err) {
+        console.error("Error fetching notifications:", err);
+        setError("Failed to load notifications");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (!loading) {
+      if (!isAuthenticated) {
+        router.push("/login");
+      } else {
+        fetchNotifications();
+      }
     }
   }, [loading, isAuthenticated, router]);
 
   const filtered =
     filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await notificationsAPI.markAsRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+    } catch (err) {
+      console.error("Error marking as read:", err);
+    }
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationsAPI.markAllAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch (err) {
+      console.error("Error marking all as read:", err);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      await notificationsAPI.deleteNotification(id);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    } catch (err) {
+      console.error("Error deleting notification:", err);
+    }
   };
 
   return (
-    <MainLayout>      {loading ? (
+    <MainLayout>
+      {loading || isLoading ? (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f9622e] mx-auto mb-4"></div>
             <p className="text-gray-600">Đang tải...</p>
           </div>
         </div>
-      ) : (      <div className="mx-auto max-w-4xl py-2">
-        <div className="mb-6 rounded-2xl bg-linear-to-r from-orange-50 to-white p-6 shadow-sm border border-orange-100/50">
+      ) : error ? (
+        <div className="mx-auto max-w-4xl py-8">
+          <div className="rounded-2xl bg-red-50 p-6 border border-red-100">
+            <p className="text-red-600">{error}</p>
+          </div>
+        </div>
+      ) : (      <div className="mx-auto max-w-4xl pb-2">
+        <div className="mb-4 rounded-2xl bg-linear-to-r from-orange-50 to-white p-6 shadow-sm border border-orange-100/50">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -187,11 +185,11 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide">
           <div className="flex items-center gap-2 p-1 bg-gray-100/80 rounded-xl">
             <button
               onClick={() => setFilter("all")}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer ${filter === "all"
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer ${filter === "all"
                   ? "bg-white text-[#f9622e] shadow-md"
                   : "text-gray-500 hover:text-gray-900"
                 }`}
@@ -214,14 +212,14 @@ export default function NotificationsPage() {
 
         <div className="space-y-5 pb-10">
           {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-3xl bg-white p-16 text-center shadow-sm border border-gray-100 animate-in fade-in zoom-in duration-500">
-              <div className="h-24 w-24 bg-orange-50/50 rounded-full flex items-center justify-center mb-6 ring-8 ring-orange-50/30">
+            <div className="flex flex-col items-center justify-center rounded-3xl bg-white py-12 px-10 text-center shadow-sm border border-gray-100 animate-in fade-in zoom-in duration-500">
+              <div className="h-24 w-24 bg-orange-100/80 rounded-full flex items-center justify-center mb-6 ring-8 ring-orange-50/30">
                 <Bell className="h-12 w-12 text-[#f9622e]/80" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">
                 Không có thông báo nào
               </h3>
-              <p className="text-gray-500 max-w-sm mx-auto leading-relaxed">
+              <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
                 Hiện tại bạn chưa có thông báo mới nào. Hãy kết nối thêm với mọi
                 người để nhận được nhiều tương tác hơn nhé!
               </p>
@@ -239,8 +237,8 @@ export default function NotificationsPage() {
               >
                 <div className="relative shrink-0 self-start mt-1">
                   <Image
-                    src={notif.user.avatar}
-                    alt={notif.user.name}
+                    src={notif.user?.avatarUrl || "/userAvatar.png"}
+                    alt={notif.user?.name || "User"}
                     width={60}
                     height={60}
                     className="h-14 w-14 rounded-full object-cover ring-4 ring-white shadow-md transition-transform group-hover:scale-105"
@@ -254,7 +252,7 @@ export default function NotificationsPage() {
                   <div className="flex flex-col gap-1.5">
                     <p className="text-[15px] text-gray-800 leading-relaxed">
                       <span className="font-bold text-gray-900 duration-200 group-hover:text-[#f9622e] transition-colors text-base">
-                        {notif.user.name}
+                        {notif.user?.name || "User"}
                       </span>{" "}
                       <span className="text-gray-600">{notif.action}</span>
                     </p>
@@ -267,7 +265,7 @@ export default function NotificationsPage() {
 
                     <p className="flex items-center gap-1.5 text-xs text-gray-400 font-bold uppercase tracking-wide pt-1">
                       <Clock className="h-3 w-3" />
-                      {formatNotificationDate(notif.timestamp)}
+                      {formatNotificationDate(notif.createdAt)}
                     </p>
                   </div>
                 </div>

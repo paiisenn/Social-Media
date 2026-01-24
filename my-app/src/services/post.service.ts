@@ -63,7 +63,6 @@ export const postAPI = {
     async getPosts(page = 1, limit = 10) {
         const token = localStorage.getItem("access_token");
         try {
-            console.log(`Fetching posts from: ${API_URL}/posts?page=${page}&limit=${limit}`);
             const response = await fetch(`${API_URL}/posts?page=${page}&limit=${limit}`, {
                 method: 'GET',
                 headers: {
@@ -97,7 +96,6 @@ export const postAPI = {
             }
 
             const data = await response.json();
-            console.log('Posts fetched successfully:', data);
             return data;
         } catch (error) {
             console.error('getPosts error:', error);
@@ -108,7 +106,6 @@ export const postAPI = {
     async getUserPosts(userId: string, page = 1, limit = 10) {
         const token = localStorage.getItem("access_token");
         try {
-            console.log(`Fetching user posts from: ${API_URL}/posts/user/${userId}?page=${page}&limit=${limit}`);
             const response = await fetch(`${API_URL}/posts/user/${userId}?page=${page}&limit=${limit}`, {
                 method: 'GET',
                 headers: {
@@ -142,7 +139,6 @@ export const postAPI = {
             }
 
             const data = await response.json();
-            console.log('User posts fetched successfully:', data);
             return data;
         } catch (error) {
             console.error('getUserPosts error:', error);
@@ -153,7 +149,6 @@ export const postAPI = {
     async updatePost(postId: string, data: { content: string }) {
         const token = localStorage.getItem("access_token");
         try {
-            console.log(`Updating post: ${API_URL}/posts/${postId}`);
             const response = await fetch(`${API_URL}/posts/${postId}`, {
                 method: 'PUT',
                 headers: {
@@ -187,7 +182,6 @@ export const postAPI = {
             }
 
             const result = await response.json();
-            console.log('Post updated successfully:', result);
             return result;
         } catch (error) {
             console.error('updatePost error:', error);
@@ -198,7 +192,6 @@ export const postAPI = {
     async deletePost(postId: string) {
         const token = localStorage.getItem("access_token");
         try {
-            console.log(`Deleting post: ${API_URL}/posts/${postId}`);
             const response = await fetch(`${API_URL}/posts/${postId}`, {
                 method: 'DELETE',
                 headers: {
@@ -230,10 +223,184 @@ export const postAPI = {
                 throw new Error(errorMessage);
             }
 
-            console.log('Post deleted successfully');
             return { success: true };
         } catch (error) {
             console.error('deletePost error:', error);
+            throw error;
+        }
+    },
+
+    async addComment(postId: string, content: string) {
+        const token = localStorage.getItem("access_token");
+        try {
+            const response = await fetch(`${API_URL}/posts/${postId}/comments`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ content }),
+            });
+
+            // Handle token expiration (401)
+            if (response.status === 401) {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('user');
+                    window.dispatchEvent(new Event('auth-change'));
+                }
+                throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorMessage = 'Failed to add comment';
+                try {
+                    const error = JSON.parse(errorText);
+                    errorMessage = error.message || errorMessage;
+                } catch (e) {
+                    errorMessage = errorText || errorMessage;
+                }
+                console.error(`API Error (${response.status}):`, errorMessage);
+                throw new Error(errorMessage);
+            }
+
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('addComment error:', error);
+            throw error;
+        }
+    },
+
+    async getComments(postId: string) {
+        const token = localStorage.getItem("access_token");
+        try {
+            // Since backend doesn't have a dedicated getComments endpoint,
+            // we'll fetch the post details which includes comments
+            const response = await fetch(`${API_URL}/posts/${postId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+            });
+
+            if (response.status === 401) {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('user');
+                    window.dispatchEvent(new Event('auth-change'));
+                }
+                return [];
+            }
+
+            if (!response.ok) {
+                // If post not found or error, return empty array
+                return [];
+            }
+
+            const post = await response.json();
+            return post.comments || [];
+        } catch (error) {
+            console.error('getComments error:', error);
+            return [];
+        }
+    },
+
+    async deleteComment(commentId: string) {
+        const token = localStorage.getItem("access_token");
+        try {
+            const response = await fetch(`${API_URL}/posts/comments/${commentId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+            });
+
+            // Handle token expiration (401)
+            if (response.status === 401) {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('user');
+                    window.dispatchEvent(new Event('auth-change'));
+                }
+                throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorMessage = 'Failed to delete comment';
+                try {
+                    const error = JSON.parse(errorText);
+                    errorMessage = error.message || errorMessage;
+                } catch (e) {
+                    errorMessage = errorText || errorMessage;
+                }
+                console.error(`API Error (${response.status}):`, errorMessage);
+                throw new Error(errorMessage);
+            }
+
+            return { success: true };
+        } catch (error) {
+            console.error('deleteComment error:', error);
+            throw error;
+        }
+    },
+
+    async toggleReaction(postId: string, reactionType: string) {
+        const token = localStorage.getItem("access_token");
+
+        if (!token || token === "undefined" || token === "null") {
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('user');
+                window.dispatchEvent(new Event('auth-change'));
+            }
+            throw new Error('Vui lòng đăng nhập để thực hiện chức năng này.');
+        }
+
+        try {
+            const requestBody = { type: reactionType };
+
+            const response = await fetch(`${API_URL}/posts/${postId}/reactions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(requestBody),
+            });
+
+            // Handle token expiration (401)
+            if (response.status === 401) {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('user');
+                    window.dispatchEvent(new Event('auth-change'));
+                }
+                throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorMessage = 'Failed to toggle reaction';
+                try {
+                    const error = JSON.parse(errorText);
+                    errorMessage = error.message || errorMessage;
+                } catch (e) {
+                    errorMessage = errorText || errorMessage;
+                }
+                console.error(`API Error (${response.status}):`, errorMessage);
+                console.error(`Response body:`, errorText);
+                throw new Error(errorMessage);
+            }
+
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('toggleReaction error:', error);
             throw error;
         }
     }

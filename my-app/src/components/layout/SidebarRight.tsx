@@ -4,168 +4,161 @@ import { MessageCircleMore, Search, UserPlus, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
-import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from "@/hooks/useAuth";
+import { messagesAPI, Conversation } from "@/services/messages.service";
+import { friendsAPI } from "@/services/friends.service";
+import { useToast } from "@/context/ToastContext";
 
 // --- Type Definitions ---
 interface FriendSuggestion {
-  id: number;
+  id: string;
   name: string;
-  avatar: string;
-  mutualFriends: number;
+  avatarUrl: string;
+  mutualFriendsCount?: number;
 }
 
-interface Message {
-  id: number | string;
-  name: string;
-  avatar: string;
-  lastMessage: string;
-  timestamp: string;
-  isRead: boolean;
+interface FriendRequest {
+  id: string;
+  requesterId: string;
+  requester: {
+    name: string;
+    avatarUrl?: string;
+  };
 }
-
-interface MessageRequest {
-  id: number;
-  name: string;
-  avatar: string;
-  messageSnippet: string;
-}
-
-// Dữ liệu giả lập cho các gợi ý kết bạn
-const initialSuggestedFriends: FriendSuggestion[] = [
-  {
-    id: 1,
-    name: "Hà Anh Tuấn",
-    avatar: "/userAvatar.png",
-    mutualFriends: 5,
-  },
-  {
-    id: 2,
-    name: "Mỹ Tâm",
-    avatar: "/userAvatar.png",
-    mutualFriends: 12,
-  },
-  {
-    id: 3,
-    name: "Đen Vâu",
-    avatar: "/userAvatar.png",
-    mutualFriends: 8,
-  },
-];
-
-// Dữ liệu giả lập cho tin nhắn
-const initialMessages: Message[] = [
-  {
-    id: 1,
-    name: "Sơn Tùng M-TP",
-    avatar: "/userAvatar.png",
-    lastMessage: "Tối nay đi diễn với anh không em?",
-    timestamp: "15 phút",
-    isRead: false,
-  },
-  {
-    id: 2,
-    name: "Hà Anh Tuấn",
-    avatar: "/userAvatar.png",
-    lastMessage: "Cafe nhé, tôi có ý tưởng mới cho See Sing Share.",
-    timestamp: "1 giờ",
-    isRead: true,
-  },
-  {
-    id: 3,
-    name: "Mỹ Tâm",
-    avatar: "/userAvatar.png",
-    lastMessage: "Bạn đã nhận được vé liveshow của tôi chưa?",
-    timestamp: "3 giờ",
-    isRead: true,
-  },
-];
-
-// Dữ liệu giả lập cho yêu cầu tin nhắn
-const initialMessageRequests: MessageRequest[] = [
-  {
-    id: 1,
-    name: "Người lạ 1",
-    avatar: "/userAvatar.png",
-    messageSnippet: "Chào bạn, mình làm quen được không?",
-  },
-  {
-    id: 2,
-    name: "Người lạ 2",
-    avatar: "/userAvatar.png",
-    messageSnippet: "Bạn có phải là người đã làm rơi ví này không?",
-  },
-];
 
 export function SidebarRight() {
   const [activeTab, setActiveTab] = useState("primary");
   const [searchQuery, setSearchQuery] = useState("");
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [messageRequests, setMessageRequests] = useState<MessageRequest[]>(initialMessageRequests);
-  const [suggestedFriends, setSuggestedFriends] = useState<FriendSuggestion[]>(initialSuggestedFriends);
-  
-  const { isAuthenticated, loading } = useAuth();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [suggestedFriends, setSuggestedFriends] = useState<FriendSuggestion[]>([]);
+
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
 
   // Refs để tham chiếu đến các nút tab
   const primaryTabRef = useRef<HTMLButtonElement>(null);
   const requestsTabRef = useRef<HTMLButtonElement>(null);
   const underlineRef = useRef<HTMLDivElement>(null);
 
+  // Effect để tải conversations & requests khi component mount và user đã authenticated
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      loadConversations();
+      loadSuggestedFriends();
+      loadFriendRequests();
+    }
+  }, [isAuthenticated, authLoading]);
+
   // Effect để cập nhật vị trí thanh trượt khi tab thay đổi
   useEffect(() => {
-    if (activeTab === 'primary' && primaryTabRef.current && underlineRef.current) {
-      underlineRef.current.style.left = `${primaryTabRef.current.offsetLeft}px`;
-      underlineRef.current.style.width = `${primaryTabRef.current.offsetWidth}px`;
-    } else if (activeTab === 'requests' && requestsTabRef.current && underlineRef.current) {
-      underlineRef.current.style.left = `${requestsTabRef.current.offsetLeft}px`;
-      underlineRef.current.style.width = `${requestsTabRef.current.offsetWidth}px`;
+    const activeRef = activeTab === 'primary' ? primaryTabRef : requestsTabRef;
+    if (activeRef.current && underlineRef.current) {
+      underlineRef.current.style.left = `${activeRef.current.offsetLeft}px`;
+      underlineRef.current.style.width = `${activeRef.current.offsetWidth}px`;
     }
   }, [activeTab]);
 
-  const requestCount = messageRequests.length;
-
-  const filteredMessages = messages.filter((msg) => msg.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  const filteredRequests = messageRequests.filter((req) => req.name.toLowerCase().includes(searchQuery.toLowerCase()));
-
-  // Hàm xử lý khi chấp nhận yêu cầu
-  const handleAcceptRequest = (id: number) => {
-    const requestToAccept = messageRequests.find((req) => req.id === id);
-    if (!requestToAccept) return;
-
-    // Tạo một cuộc trò chuyện mới từ yêu cầu đã chấp nhận
-    const newConversation: Message = {
-      id: uuidv4(), // Sử dụng uuid để tạo ID duy nhất, an toàn
-      name: requestToAccept.name,
-      avatar: requestToAccept.avatar,
-      lastMessage: requestToAccept.messageSnippet,
-      timestamp: "Vừa xong",
-      isRead: false, // Đánh dấu là chưa đọc để người dùng chú ý
-    };
-
-    setMessages((currentMessages) => [newConversation, ...currentMessages]);
-    setMessageRequests((currentRequests) => currentRequests.filter((req) => req.id !== id));
+  const loadConversations = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await messagesAPI.getChatList();
+      setConversations(Array.isArray(data) ? data : data?.data || []);
+    } catch (err) {
+      console.error('Failed to load conversations:', err);
+      setError('Không thể tải danh sách tin nhắn');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Hàm xử lý khi xóa yêu cầu
-  const handleDeleteRequest = (id: number) => {
-    setMessageRequests((currentRequests) => currentRequests.filter((req) => req.id !== id));
+  const loadSuggestedFriends = async () => {
+    try {
+      setLoadingSuggestions(true);
+      const data = await friendsAPI.getSuggestedFriends(5);
+      // Đảm bảo không gợi ý chính bản thân mình
+      const filteredData = Array.isArray(data)
+        ? data.filter((f: FriendSuggestion) => f.id !== user?.id)
+        : [];
+      setSuggestedFriends(filteredData);
+    } catch (err) {
+      console.error('Failed to load suggested friends:', err);
+    } finally {
+      setLoadingSuggestions(false);
+    }
   };
 
-  // Hàm xử lý khi thêm bạn từ gợi ý
-  const handleAddFriend = (id: number) => {
-    console.log(`Sending friend request to user ${id}`);
-    // Trong ứng dụng thật, bạn sẽ gửi yêu cầu API ở đây
-    setSuggestedFriends((currentFriends) => currentFriends.filter((friend) => friend.id !== id));
+  const handleAddFriend = async (friendId: string) => {
+    try {
+      await friendsAPI.sendFriendRequest(friendId);
+      toast("Đã gửi yêu cầu kết bạn!", "success");
+      setSuggestedFriends((prev) => prev.filter((f) => f.id !== friendId));
+    } catch (err) {
+      console.error('Failed to add friend:', err);
+      toast("Không thể gửi yêu cầu kết bạn", "error");
+    }
   };
 
-  // Hàm xử lý khi xóa một gợi ý
-  const handleRemoveSuggestion = (id: number) => {
-    setSuggestedFriends((currentFriends) => currentFriends.filter((friend) => friend.id !== id));
+  const handleRemoveSuggestion = (friendId: string) => {
+    setSuggestedFriends((prev) => prev.filter((f) => f.id !== friendId));
   };
+
+  const loadFriendRequests = async () => {
+    try {
+      setLoadingRequests(true);
+      const data = await friendsAPI.getFriendRequests();
+      // Loại bỏ các yêu cầu trùng lặp từ cùng một người (nếu có)
+      const uniqueRequests = Array.isArray(data)
+        ? (data as FriendRequest[]).filter((req, index, self) =>
+          index === self.findIndex((r) => r.requesterId === req.requesterId)
+        )
+        : [];
+      setFriendRequests(uniqueRequests);
+    } catch (err) {
+      console.error('Failed to load friend requests:', err);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  const handleAcceptRequest = async (requesterId: string) => {
+    try {
+      await friendsAPI.acceptFriendRequest(requesterId);
+      toast("Đã chấp nhận lời mời kết bạn!", "success");
+      setFriendRequests((prev) => prev.filter((r) => r.requesterId !== requesterId));
+      loadConversations(); // Refresh conversations as they might have started a chat or just to update list
+    } catch (err) {
+      console.error('Failed to accept request:', err);
+      toast("Không thể chấp nhận yêu cầu", "error");
+    }
+  };
+
+  const handleRejectRequest = async (requesterId: string) => {
+    try {
+      await friendsAPI.rejectFriendRequest(requesterId);
+      toast("Đã từ chối lời mời kết bạn", "success");
+      setFriendRequests((prev) => prev.filter((r) => r.requesterId !== requesterId));
+    } catch (err) {
+      console.error('Failed to reject request:', err);
+      toast("Không thể từ chối yêu cầu", "error");
+    }
+  };
+
+  const filteredConversations = conversations.filter((conv) =>
+    conv.partner.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const unreadCount = conversations.filter(conv => conv.unreadCount > 0).length;
+  const requestCount = friendRequests.length;
 
   return (
     <aside className="custom-scrollbar sticky top-14 hidden h-[calc(100vh-3.5rem)] w-78 flex-col gap-4 overflow-y-auto bg-gray-50 p-4 lg:flex">
-      {!loading && (
+      {!authLoading && (
         <>
           {/* Khối Tin nhắn */}
           {isAuthenticated ? (
@@ -202,8 +195,8 @@ export function SidebarRight() {
                     ref={primaryTabRef}
                     onClick={() => setActiveTab("primary")}
                     className={`pb-2 text-sm font-semibold transition-colors duration-300 ${activeTab === "primary"
-                        ? "text-[#f9622e]"
-                        : "text-gray-500 hover:text-gray-800 cursor-pointer"
+                      ? "text-[#f9622e]"
+                      : "text-gray-500 hover:text-gray-800 cursor-pointer"
                       }`}
                   >
                     Chính
@@ -212,8 +205,8 @@ export function SidebarRight() {
                     ref={requestsTabRef}
                     onClick={() => setActiveTab("requests")}
                     className={`relative pb-2 text-sm font-semibold transition-colors duration-300 group ${activeTab === "requests"
-                        ? "text-[#f9622e]"
-                        : "text-gray-500 hover:text-gray-800 cursor-pointer"
+                      ? "text-[#f9622e]"
+                      : "text-gray-500 hover:text-gray-800 cursor-pointer"
                       }`}
                   >
                     Yêu cầu
@@ -228,50 +221,103 @@ export function SidebarRight() {
                 </div>
               </div>
 
-              {/* Danh sách tin nhắn */}
+              {/* Nội dung danh sách */}
               <div className="mt-2">
-                {activeTab === 'primary' && (
-                  <ul className="space-y-1">
-                    {filteredMessages.length > 0 ? (
-                      filteredMessages.map((msg) => (
-                        <li key={msg.id}>
-                          <Link href={`/messages?name=${encodeURIComponent(msg.name)}&avatar=${encodeURIComponent(msg.avatar)}`} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-100">
-                            <Image src={msg.avatar} alt={msg.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
+                {activeTab === 'primary' ? (
+                  loading ? (
+                    <div className="py-4 text-center text-sm text-gray-500">
+                      Đang tải tin nhắn...
+                    </div>
+                  ) : error ? (
+                    <div className="py-4 text-center text-sm text-red-500">
+                      {error}
+                    </div>
+                  ) : filteredConversations.length > 0 ? (
+                    <div className="max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                      <ul className="space-y-1">
+                        {filteredConversations.map((conv) => (
+                          <li key={conv.partner.id}>
+                            <Link
+                              href={`/messages?userId=${conv.partner.id}&name=${encodeURIComponent(conv.partner.name)}&avatar=${encodeURIComponent(conv.partner.avatarUrl || '/userAvatar.png')}`}
+                              className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-100"
+                            >
+                              <Image
+                                src={conv.partner.avatarUrl || '/userAvatar.png'}
+                                alt={conv.partner.name}
+                                width={40}
+                                height={40}
+                                className="h-10 w-10 rounded-full object-cover"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold text-gray-800">
+                                  {conv.partner.name}
+                                </p>
+                                <p className={`truncate text-xs ${conv.unreadCount > 0 ? 'font-bold text-gray-800' : 'text-gray-500'}`}>
+                                  {conv.lastMessage.content}
+                                </p>
+                              </div>
+                              {conv.unreadCount > 0 && (
+                                <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500"></div>
+                              )}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="py-4 text-center text-sm text-gray-500">
+                      Không tìm thấy tin nhắn nào
+                    </div>
+                  )
+                ) : (
+                  // Requests Tab Content
+                  loadingRequests ? (
+                    <div className="py-4 text-center text-sm text-gray-500">
+                      Đang tải yêu cầu...
+                    </div>
+                  ) : friendRequests.length > 0 ? (
+                    <div className="max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                      <ul className="space-y-2">
+                        {friendRequests.map((req) => (
+                          <li key={req.id} className="flex items-center gap-3">
+                            <Image
+                              src={req.requester.avatarUrl || '/userAvatar.png'}
+                              alt={req.requester.name}
+                              width={40}
+                              height={40}
+                              className="h-10 w-10 rounded-full object-cover"
+                            />
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-semibold text-gray-800">{msg.name}</p>
-                              <p className={`truncate text-xs ${msg.isRead ? 'text-gray-500' : 'font-bold text-gray-800'}`}>{msg.lastMessage}</p>
+                              <p className="truncate text-sm font-semibold text-gray-800">
+                                {req.requester.name}
+                              </p>
+                              <p className="truncate text-[11px] text-gray-500">
+                                Gửi lời mời kết bạn
+                              </p>
+                              <div className="mt-1.5 flex gap-2">
+                                <button
+                                  onClick={() => handleAcceptRequest(req.requesterId)}
+                                  className="rounded-md bg-[#f9622e] cursor-pointer px-3 py-1 text-[11px] font-bold text-white hover:bg-[#d84e1e] transition-colors"
+                                >
+                                  Chấp nhận
+                                </button>
+                                <button
+                                  onClick={() => handleRejectRequest(req.requesterId)}
+                                  className="rounded-md bg-gray-200 cursor-pointer px-3 py-1 text-[11px] font-bold text-gray-700 hover:bg-gray-300 transition-colors"
+                                >
+                                  Xóa
+                                </button>
+                              </div>
                             </div>
-                            {!msg.isRead && <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500"></div>}
-                          </Link>
-                        </li>
-                      ))
-                    ) : (
-                      <li className="py-4 text-center text-sm text-gray-500">Không tìm thấy kết quả</li>
-                    )}
-                  </ul>
-                )}
-                {activeTab === 'requests' && (
-                  <ul className="space-y-3">
-                    {filteredRequests.length > 0 ? (
-                      filteredRequests.map((req) => (
-                        <li key={req.id} className="rounded-lg p-2 transition-colors hover:bg-gray-50">
-                          <div className="flex items-center gap-3">
-                            <Image src={req.avatar} alt={req.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-semibold text-gray-800">{req.name}</p>
-                              <p className="truncate text-xs text-gray-500">{req.messageSnippet}</p>
-                            </div>
-                          </div>
-                          <div className="mt-2 flex gap-2">
-                            <button onClick={() => handleAcceptRequest(req.id)} className="flex-1 rounded-lg cursor-pointer bg-[#f9622e] py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#f9622e]/90">Chấp nhận</button>
-                            <button onClick={() => handleDeleteRequest(req.id)} className="flex-1 rounded-lg cursor-pointer bg-gray-200 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-300">Xóa</button>
-                          </div>
-                        </li>
-                      ))
-                    ) : (
-                      <li className="py-4 text-center text-sm text-gray-500">Không tìm thấy kết quả</li>
-                    )}
-                  </ul>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="py-4 text-center text-sm text-gray-500">
+                      Không có yêu cầu nào gửi cho bạn
+                    </div>
+                  )
                 )}
               </div>
             </div>
@@ -301,25 +347,55 @@ export function SidebarRight() {
           {isAuthenticated ? (
             <div className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm">
               <h3 className="text-lg font-bold text-gray-800">Gợi ý cho bạn</h3>
-              <ul className="space-y-3">
-                {suggestedFriends.map((friend) => (
-                  <li key={friend.id} className="flex items-center gap-3">
-                    <Image src={friend.avatar} alt={friend.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-800 text-sm">{friend.name}</p>
-                      <p className="text-xs text-gray-500">{friend.mutualFriends} bạn chung</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => handleAddFriend(friend.id)} title="Thêm bạn" className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#f9622e]/10 text-[#f9622e] transition-colors hover:bg-[#f9622e]/20">
-                        <UserPlus size={16} />
-                      </button>
-                      <button onClick={() => handleRemoveSuggestion(friend.id)} title="Xóa gợi ý" className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200">
-                        <X size={16} />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              {loadingSuggestions ? (
+                <div className="py-4 text-center text-sm text-gray-500">
+                  Đang tải gợi ý...
+                </div>
+              ) : suggestedFriends.length > 0 ? (
+                <div className="max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                  <ul className="space-y-3">
+                    {suggestedFriends.map((friend) => (
+                      <li key={friend.id} className="flex items-center gap-3">
+                        <Image
+                          src={friend.avatarUrl || "/userAvatar.png"}
+                          alt={friend.name}
+                          width={40}
+                          height={40}
+                          className="h-10 w-10 rounded-full object-cover"
+                        />
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-800 text-sm">
+                            {friend.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {friend.mutualFriendsCount || 0} bạn chung
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleAddFriend(friend.id)}
+                            title="Thêm bạn"
+                            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#f9622e]/10 text-[#f9622e] transition-colors hover:bg-[#f9622e]/20"
+                          >
+                            <UserPlus size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleRemoveSuggestion(friend.id)}
+                            title="Xóa gợi ý"
+                            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="py-2 text-center text-sm text-gray-500">
+                  Không có gợi ý mới
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm">

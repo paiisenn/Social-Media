@@ -17,7 +17,7 @@ export interface AuthResponse {
 }
 
 export const authAPI = {
-    async register(data: RegisterData): Promise<AuthResponse> {
+    async register(data: RegisterData): Promise<{ message: string; userId: string }> {
         const response = await fetch(`${API_URL}/auth/register`, {
             method: 'POST',
             headers: {
@@ -48,6 +48,13 @@ export const authAPI = {
             throw new Error(error.message || 'Login failed');
         }
 
-        return response.json();
+        const data = await response.json();
+        return {
+            access_token: data.accessToken || data.access_token,
+            user: {
+                ...data.user,
+                avatar: data.user.avatarUrl || data.user.avatar,
+            },
+        };
     },
 };

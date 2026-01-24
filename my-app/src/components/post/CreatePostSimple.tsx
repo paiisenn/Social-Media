@@ -18,6 +18,7 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { useAuth } from "@/hooks/useAuth";
+import { friendsAPI, Friend } from "@/services/friends.service";
 
 interface CreatePostSimpleProps {
   onCreatePost?: (postData: {
@@ -183,6 +184,8 @@ export function CreatePostSimple({ onCreatePost }: CreatePostSimpleProps) {
   const [searchFriend, setSearchFriend] = useState("");
   const [searchLocation, setSearchLocation] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [friendsList, setFriendsList] = useState<{ id: string; name: string }[]>([]);
+  const [isLoadingFriends, setIsLoadingFriends] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -234,6 +237,29 @@ export function CreatePostSimple({ onCreatePost }: CreatePostSimpleProps) {
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
   }, [content]);
+
+  // Fetch friends when tag selector opens
+  useEffect(() => {
+    if (showTagFriendsSelector && friendsList.length === 0) {
+      fetchFriends();
+    }
+  }, [showTagFriendsSelector]);
+
+  const fetchFriends = async () => {
+    try {
+      setIsLoadingFriends(true);
+      const friends = await friendsAPI.getFriends();
+      const mappedFriends = friends.map((f: Friend) => ({
+        id: f.id,
+        name: f.name,
+      }));
+      setFriendsList(mappedFriends);
+    } catch (error) {
+      console.error("Failed to fetch friends:", error);
+    } finally {
+      setIsLoadingFriends(false);
+    }
+  };
 
   const handleImageClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -721,65 +747,65 @@ export function CreatePostSimple({ onCreatePost }: CreatePostSimpleProps) {
                           />
                         </div>
                         <div className="max-h-60 overflow-y-auto pt-1">
-                          {[
-                            "Anh Tuấn",
-                            "Bảo Ngọc",
-                            "Công Thành",
-                            "Duy Mạnh",
-                            "Minh Anh",
-                            "Quỳnh Chi",
-                            "Thanh Thảo",
-                            "Hoàng Nam",
-                            "Phương Linh",
-                          ]
-                            .filter((name) =>
-                              name
-                                .toLowerCase()
-                                .includes(searchFriend.toLowerCase()),
-                            )
-                            .map((name, i) => {
-                              const isTagged = taggedUsers.find(
-                                (u) => u.name === name,
-                              );
-                              return (
-                                <button
-                                  key={i}
-                                  onClick={() => {
-                                    if (isTagged) {
-                                      setTaggedUsers((prev) =>
-                                        prev.filter((u) => u.name !== name),
-                                      );
-                                    } else {
-                                      setTaggedUsers([
-                                        ...taggedUsers,
-                                        { id: `mock-${name}-${i}`, name },
-                                      ]);
-                                    }
-                                  }}
-                                  className="flex w-full items-center justify-between rounded-lg p-2 hover:bg-gray-50 transition-colors"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <div className="h-8 w-8 rounded-full bg-[#fef2ee] flex items-center justify-center text-[#f9622e] text-xs font-bold shrink-0">
-                                      {name.charAt(0)}
-                                    </div>
-                                    <span className="text-sm font-medium text-gray-700 truncate">
-                                      {name}
-                                    </span>
-                                  </div>
-                                  <div
-                                    className={`h-5 w-5 cursor-pointer rounded-full border flex items-center justify-center transition-colors ${
-                                      isTagged
-                                        ? "bg-[#f9622e] border-[#f9622e]"
-                                        : "border-gray-300"
-                                    }`}
+                          {isLoadingFriends ? (
+                            <div className="text-center py-4 text-gray-500">
+                              <p>Đang tải bạn bè...</p>
+                            </div>
+                          ) : friendsList.length === 0 ? (
+                            <div className="text-center py-4 text-gray-500">
+                              <p>Chưa có bạn bè nào</p>
+                            </div>
+                          ) : (
+                            friendsList
+                              .filter((friend) =>
+                                friend.name
+                                  .toLowerCase()
+                                  .includes(searchFriend.toLowerCase()),
+                              )
+                              .map((friend) => {
+                                const isTagged = taggedUsers.find(
+                                  (u) => u.id === friend.id,
+                                );
+                                return (
+                                  <button
+                                    key={friend.id}
+                                    onClick={() => {
+                                      if (isTagged) {
+                                        setTaggedUsers((prev) =>
+                                          prev.filter((u) => u.id !== friend.id),
+                                        );
+                                      } else {
+                                        setTaggedUsers([
+                                          ...taggedUsers,
+                                          { id: friend.id, name: friend.name },
+                                        ]);
+                                      }
+                                    }}
+                                    className="flex w-full items-center justify-between rounded-lg p-2 hover:bg-gray-50 transition-colors"
                                   >
-                                    {isTagged && (
-                                      <Users size={12} className="text-white" />
-                                    )}
-                                  </div>
-                                </button>
-                              );
-                            })}
+                                    <div className="flex items-center gap-3">
+                                      <div className="h-8 w-8 rounded-full bg-[#fef2ee] flex items-center justify-center text-[#f9622e] text-xs font-bold shrink-0">
+                                        {friend.name.charAt(0)}
+                                      </div>
+                                      <span className="text-sm font-medium text-gray-700 truncate">
+                                        {friend.name}
+                                      </span>
+                                    </div>
+                                    <div
+                                      className={`h-5 w-5 cursor-pointer rounded-full border flex items-center justify-center transition-colors ${
+                                        isTagged
+                                          ? "bg-[#f9622e] border-[#f9622e]"
+                                          : "border-gray-300"
+                                      }`}
+                                    >
+                                      {isTagged && (
+                                        <Users size={12} className="text-white" />
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })
+                          )}
                         </div>
                         <div className="mt-2 border-t border-gray-100 pt-2 flex justify-end">
                           <button

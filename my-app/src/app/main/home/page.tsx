@@ -6,6 +6,7 @@ import { PostCard } from "@/components/post/PostCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/context/ToastContext";
 import { postAPI } from "@/services/post.service";
+import { triggerStatsUpdate } from "@/hooks/useUserStats";
 
 interface Post {
   id: string;
@@ -49,6 +50,7 @@ export default function HomePage() {
           comments?: number;
         };
         createdAt: string;
+        isLiked?: boolean;
       }
 
       // Handle both paginated and non-paginated responses
@@ -86,6 +88,7 @@ export default function HomePage() {
         comments: p._count?.comments || 0,
         shares: 0,
         timestamp: new Date(p.createdAt).toLocaleString("vi-VN"),
+        initialIsLiked: p.isLiked || false,
       }));
       setPosts(mappedPosts);
     } catch (error) {
@@ -127,6 +130,7 @@ export default function HomePage() {
       toast("Đăng bài viết thành công!", "success");
       // Refresh posts list to show the newly created post
       await fetchPosts();
+      triggerStatsUpdate();
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Đăng bài viết thất bại";
@@ -140,6 +144,7 @@ export default function HomePage() {
       await postAPI.deletePost(postId);
       toast("Xóa bài viết thành công!", "success");
       await fetchPosts();
+      triggerStatsUpdate();
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Xóa bài viết thất bại";

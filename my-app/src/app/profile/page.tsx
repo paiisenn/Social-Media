@@ -27,7 +27,8 @@ import { CreatePostSimple } from "@/components/post/CreatePostSimple";
 import { PostCard } from "@/components/post/PostCard";
 import { useAuth } from "@/hooks/useAuth";
 import { postAPI } from "@/services/post.service";
-
+import { friendsAPI, Friend } from "@/services/friends.service";
+import { useUserStats, triggerStatsUpdate } from "@/hooks/useUserStats";
 // Helper function to generate username from name
 function generateUsername(name: string): string {
   return "@" + name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
@@ -47,6 +48,7 @@ interface Post {
   comments: number;
   shares: number;
   timestamp: string;
+  mediaUrls?: string[];
 }
 
 const mockPosts: Post[] = [];
@@ -74,6 +76,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<
     "posts" | "friends" | "photos" | "videos"
   >("posts");
+  const { stats, refresh: refreshStats } = useUserStats();
   const [isFollowing, setIsFollowing] = useState(false);
 
   // Redirect to login if not authenticated
@@ -112,6 +115,8 @@ export default function ProfilePage() {
 
   const [posts, setPosts] = useState(mockPosts);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [isLoadingFriends, setIsLoadingFriends] = useState(false);
 
   const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -219,13 +224,26 @@ export default function ProfilePage() {
     }
   };
 
+  const fetchFriends = useCallback(async () => {
+    try {
+      setIsLoadingFriends(true);
+      const data = await friendsAPI.getFriends();
+      const friendsData = Array.isArray(data) ? data : data.data || [];
+      setFriends(friendsData);
+    } catch (error) {
+      console.error("Failed to fetch friends", error);
+    } finally {
+      setIsLoadingFriends(false);
+    }
+  }, []);
+
   const fetchPosts = useCallback(async () => {
     if (!user?.id) return;
 
     try {
       setIsLoadingPosts(true);
-      // Fetch only current user's posts
-      const res = await postAPI.getUserPosts(user.id, 1, 10);
+      // Fetch all current user's posts for accurate count
+      const res = await postAPI.getUserPosts(user.id, 1, 1000);
       interface PostData {
         id: string;
         author: {
@@ -240,6 +258,7 @@ export default function ProfilePage() {
           comments?: number;
         };
         createdAt: string;
+        isLiked?: boolean;
       }
 
       // Handle both paginated and non-paginated responses
@@ -256,12 +275,14 @@ export default function ProfilePage() {
           username: "@" + (p.author.name ? p.author.name.replace(/\s+/g, '').toLowerCase() : "user")
         },
         content: p.content,
+        mediaUrls: p.mediaUrls || [],
         image: p.mediaUrls && p.mediaUrls.length > 0 && !p.mediaUrls[0].endsWith(".mp4") ? p.mediaUrls[0] : undefined,
         video: p.mediaUrls && p.mediaUrls.length > 0 && p.mediaUrls[0].endsWith(".mp4") ? p.mediaUrls[0] : undefined,
         likes: p._count?.reactions || 0,
         comments: p._count?.comments || 0,
         shares: 0,
         timestamp: new Date(p.createdAt).toLocaleString('vi-VN'),
+        initialIsLiked: p.isLiked || false,
       }));
       setPosts(mappedPosts);
     } catch (error) {
@@ -276,6 +297,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       fetchPosts();
+      fetchFriends();
     }
   }, [user, fetchPosts]);
 
@@ -300,6 +322,7 @@ export default function ProfilePage() {
       toast("Đăng bài viết thành công!", "success");
       // Refresh posts list to show the newly created post
       await fetchPosts();
+      triggerStatsUpdate();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Đăng bài viết thất bại";
       toast(errorMessage, "error");
@@ -314,6 +337,7 @@ export default function ProfilePage() {
       toast("Xóa bài viết thành công!", "success");
       // Refresh posts list from backend
       await fetchPosts();
+      triggerStatsUpdate();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Xóa bài viết thất bại";
       toast(errorMessage, "error");
@@ -351,17 +375,34 @@ export default function ProfilePage() {
     alert("Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét bài viết này.");
   };
 
-  const tabs = useMemo(() => [
-    { key: "posts", label: "Bài đăng", icon: null },
-    {
-      key: "friends",
-      label: "Bạn bè",
-      icon: null,
-      count: 380,
-    },
-    { key: "photos", label: "Ảnh", icon: null, count: 12 },
-    { key: "videos", label: "Video", icon: null, count: 3 },
-  ], []);
+  const { photos, videos } = useMemo(() => {
+    const pUrls: string[] = [];
+    const vUrls: string[] = [];
+    posts.forEach(post => {
+      (post.mediaUrls || []).forEach(url => {
+        if (url.endsWith(".mp4")) {
+          vUrls.push(url);
+        } else {
+          pUrls.push(url);
+        }
+      });
+    });
+    return { photos: pUrls, videos: vUrls };
+  }, [posts]);
+
+  const tabs = useMemo(() => {
+    return [
+      { key: "posts", label: `Bài viết`, icon: null, count: stats.postsCount },
+      {
+        key: "friends",
+        label: `Bạn bè`,
+        icon: null,
+        count: stats.friendsCount || friends.length,
+      },
+      { key: "photos", label: `Ảnh`, icon: null, count: stats.photosCount },
+      { key: "videos", label: `Video`, icon: null, count: stats.videosCount },
+    ];
+  }, [stats, friends.length]);
 
   useEffect(() => {
     const activeTabIndex = tabs.findIndex((tab) => tab.key === activeTab);
@@ -482,11 +523,11 @@ export default function ProfilePage() {
 
                   <div className="mb-3 text-gray-600">
                     <span className="font-semibold">
-                      {formatStatNumber(380)}
+                      {formatStatNumber(stats.followersCount)}
                     </span>{" "}
                     followers •{" "}
                     <span className="font-semibold">
-                      {formatStatNumber(12800)}
+                      {formatStatNumber(stats.followingCount)}
                     </span>{" "}
                     following
                   </div>
@@ -686,10 +727,10 @@ export default function ProfilePage() {
                     }`}
                 >
                   {tab.label}
-                  {tab.count && (
+                  {tab.count !== undefined && (
                     <span className={`rounded-full px-2 py-1 text-xs transition-colors duration-300 ${activeTab === tab.key ? "bg-orange-100 text-[#f9622e]" : "bg-gray-100 text-gray-600"
                       }`}>
-                      {tab.count}
+                      {formatStatNumber(tab.count as number)}
                     </span>
                   )}
                 </button>
@@ -739,82 +780,102 @@ export default function ProfilePage() {
               {activeTab === "friends" && (
                 <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
                   <h2 className="mb-4 text-xl font-bold text-gray-900">
-                    Bạn bè (380)
+                    Bạn bè ({friends.length})
                   </h2>
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="rounded-lg border border-gray-100 p-3 text-center transition-shadow hover:shadow-md cursor-pointer"
-                        onClick={() => router.push(`/profile/u${(i % 4) + 1}`)}
-                      >
-                        <Image
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Friend${i}`}
-                          alt={`Friend ${i + 1}`}
-                          width={100}
-                          height={100}
-                          className="mx-auto h-24 w-24 rounded-full object-cover bg-gray-50"
-                        />
-                        <p className="mt-3 font-semibold text-gray-900">
-                          Friend {i + 1}
-                        </p>
-                        <p className="text-sm text-gray-500">5 mutual friends</p>
-                        <button className="mt-3 w-full rounded-md bg-blue-50 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-100 transition-colors">
-                          Message
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                  {isLoadingFriends ? (
+                    <div className="text-center py-4 text-gray-500">Đang tải bạn bè...</div>
+                  ) : friends.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                      {friends.map((friend) => (
+                        <div
+                          key={friend.id}
+                          className="rounded-lg border border-gray-100 p-3 text-center transition-shadow hover:shadow-md cursor-pointer"
+                          onClick={() => router.push(`/profile/${friend.id}`)}
+                        >
+                          <Image
+                            src={friend.avatarUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"}
+                            alt={friend.name}
+                            width={100}
+                            height={100}
+                            className="mx-auto h-24 w-24 rounded-full object-cover bg-gray-50"
+                          />
+                          <p className="mt-3 font-semibold text-gray-900 line-clamp-2">
+                            {friend.name}
+                          </p>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/messages?userId=${friend.id}&name=${friend.name}&avatar=${friend.avatarUrl || "/userAvatar.png"}`);
+                            }}
+                            className="mt-3 w-full rounded-md bg-blue-50 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-100 transition-colors"
+                          >
+                            Nhắn tin
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>Bạn chưa có bạn bè nào. Hãy bắt đầu kết nối với mọi người nhé!</p>
+                    </div>
+                  )}
                 </div>
               )}
 
               {activeTab === "photos" && (
                 <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
-                  <h2 className="mb-4 text-xl font-bold text-gray-900">Photos</h2>
+                  <h2 className="mb-4 text-xl font-bold text-gray-900">Ảnh ({stats.photosCount})</h2>
                   <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="aspect-square overflow-hidden rounded-lg bg-gray-100 border border-gray-200 cursor-pointer group"
-                      >
-                        <Image
-                          src={`https://images.unsplash.com/photo-${1500000000000 + i
-                            }?w=300&h=300&fit=crop`}
-                          alt={`Photo ${i + 1}`}
-                          width={300}
-                          height={300}
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                        />
+                    {photos.length > 0 ? (
+                      photos.map((photoUrl, i) => (
+                        <div
+                          key={i}
+                          className="aspect-square overflow-hidden rounded-lg bg-gray-100 border border-gray-200 cursor-pointer group"
+                        >
+                          <Image
+                            src={photoUrl}
+                            alt={`Photo ${i + 1}`}
+                            width={300}
+                            height={300}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center py-8 text-gray-500">
+                        Bạn chưa có ảnh nào được chia sẻ.
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               )}
 
               {activeTab === "videos" && (
                 <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
-                  <h2 className="mb-4 text-xl font-bold text-gray-900">Videos</h2>
+                  <h2 className="mb-4 text-xl font-bold text-gray-900">Videos ({stats.videosCount})</h2>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="relative aspect-video overflow-hidden rounded-lg bg-gray-100 border border-gray-200 group cursor-pointer"
-                      >
-                        <Image
-                          src={`https://images.unsplash.com/photo-${1600000000000 + i
-                            }?w=400&h=225&fit=crop`}
-                          alt={`Video ${i + 1}`}
-                          width={400}
-                          height={225}
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-                          <div className="rounded-full bg-white/90 p-3 shadow-lg transform group-hover:scale-110 transition-transform">
-                            <Video className="h-6 w-6 text-gray-900" />
+                    {videos.length > 0 ? (
+                      videos.map((videoUrl, i) => (
+                        <div
+                          key={i}
+                          className="relative aspect-video overflow-hidden rounded-lg bg-gray-100 border border-gray-200 group cursor-pointer"
+                        >
+                          <video
+                            src={videoUrl}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                            <div className="rounded-full bg-white/90 p-3 shadow-lg transform group-hover:scale-110 transition-transform">
+                              <Video className="h-6 w-6 text-gray-900" />
+                            </div>
                           </div>
                         </div>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center py-8 text-gray-500">
+                        Bạn chưa có video nào được chia sẻ.
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               )}

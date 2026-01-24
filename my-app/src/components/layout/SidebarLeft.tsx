@@ -13,8 +13,10 @@ import {
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/context/ToastContext";
+import { userStatsAPI } from "@/services/user-stats.service";
+import { useUserStats } from "@/hooks/useUserStats";
 
 const sidebarNavItems = [
   { href: "/profile", icon: User, label: "Trang cá nhân" },
@@ -101,9 +103,9 @@ export function SidebarLeft() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  // Dữ liệu người dùng giả lập
   const { user, isAuthenticated, loading, logout } = useAuth();
+  const { stats, loading: statsLoading } = useUserStats();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // User data from auth
   const userName = user?.name || "";
@@ -148,15 +150,15 @@ export function SidebarLeft() {
 
                 <div className="flex w-full justify-around rounded-lg bg-gray-50 p-2">
                   <div className="flex flex-col items-center">
-                    <span className="font-bold text-gray-800">{formatStatNumber(29)}</span>
+                    <span className="font-bold text-gray-800">{formatStatNumber(stats.postsCount)}</span>
                     <span className="text-xs text-gray-500">Bài viết</span>
                   </div>
                   <div className="flex flex-col items-center">
-                    <span className="font-bold text-gray-800">{formatStatNumber(380)}</span>
+                    <span className="font-bold text-gray-800">{formatStatNumber(stats.followersCount)}</span>
                     <span className="text-xs text-gray-500">Follower</span>
                   </div>
                   <div className="flex flex-col items-center">
-                    <span className="font-bold text-gray-800">{formatStatNumber(12800)}</span>
+                    <span className="font-bold text-gray-800">{formatStatNumber(stats.followingCount)}</span>
                     <span className="text-xs text-gray-500">Đã follow</span>
                   </div>
                 </div>

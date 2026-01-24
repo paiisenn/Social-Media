@@ -39,9 +39,15 @@ export default function LoginPage() {
         } catch (error: unknown) {
             console.error("Login error:", error)
             const err = error as Error
-            if (err.message.includes("Email") || err.message.includes("password")) {
+            const errorMsg = err.message.toLowerCase()
+
+            if (errorMsg.includes("email") || 
+                errorMsg.includes("password") || 
+                errorMsg.includes("credential") || 
+                errorMsg.includes("unauthorized") || 
+                errorMsg.includes("not found")) {
                 toast("Email hoặc mật khẩu không chính xác!", "error")
-            } else if (err.message.includes("network") || err.message.includes("fetch")) {
+            } else if (errorMsg.includes("network") || errorMsg.includes("fetch")) {
                 toast("Lỗi kết nối. Vui lòng kiểm tra internet của bạn.", "error")
             } else {
                 toast('Đăng nhập thất bại, vui lòng thử lại', "error")
