@@ -8,16 +8,15 @@ export interface NotificationUser {
 
 export interface Notification {
   id: string;
-  type: "like" | "comment" | "follow" | "share" | "message" | "friend_request";
-  userId: string;
-  user?: NotificationUser;
-  action: string;
+  type: "FRIEND_REQUEST" | "FRIEND_ACCEPTED" | "POST_LIKE" | "POST_TAG" | "POST_COMMENT" | "COMMENT_REPLY" | "MESSAGE";
+  recipientId: string;
+  actorId?: string;
+  actor?: NotificationUser;
+  message: string;
   content?: string;
-  relatedPostId?: string;
-  relatedUserId?: string;
-  read: boolean;
+  entityId?: string;
+  isRead: boolean;
   createdAt: string;
-  updatedAt: string;
 }
 
 export const notificationsAPI = {
@@ -62,7 +61,7 @@ export const notificationsAPI = {
       const response = await fetch(
         `${API_URL}/notifications/${notificationId}/read`,
         {
-          method: "PATCH",
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -132,7 +131,7 @@ export const notificationsAPI = {
     const token = localStorage.getItem("access_token");
     try {
       const response = await fetch(`${API_URL}/notifications/read-all`, {
-        method: "PATCH",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,

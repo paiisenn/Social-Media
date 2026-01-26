@@ -192,7 +192,9 @@ export function SidebarLeft() {
                       key={item.href}
                       {...item}
                       active={
-                        pathname === item.href || (pathname?.startsWith(item.href) && item.href !== "/")
+                        item.href === "/profile"
+                          ? pathname === "/profile"
+                          : pathname === item.href || (pathname?.startsWith(item.href) && item.href !== "/")
                       }
                     />
                   ))}

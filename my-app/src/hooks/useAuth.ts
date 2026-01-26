@@ -9,6 +9,7 @@ export interface User {
     name: string;
     username?: string;
     avatar?: string;
+    createdAt?: string;
 }
 
 export function useAuth() {

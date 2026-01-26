@@ -1,142 +1,53 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { friendsAPI } from "@/services/friends.service";
 import MainLayout from "@/app/main/layout";
 import { PostCard } from "@/components/post/PostCard";
 import Image from "next/image";
 import { Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthPromptModal } from "@/components/ui/AuthPromptModal";
+import { postAPI } from "@/services/post.service";
 
-// Mock Data (Shared with Home/Navbar for consistency in this demo)
-const mockPosts = [
-    {
-        id: "1",
-        author: {
-            name: "Nguyễn Văn A",
-            avatar: "/userAvatar.png",
-            username: "@nguyenvana",
-        },
-        content: "Hôm nay thời tiết thật đẹp! Đi chơi với bạn bè tại công viên.",
-        image: "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=600&h=400&fit=crop",
-        likes: 245,
-        comments: 32,
-        shares: 12,
-        timestamp: "2 giờ trước",
-        type: "post"
-    },
-    {
-        id: "2",
-        author: {
-            name: "Trần Thị B",
-            avatar: "/userAvatar.png",
-            username: "@tranthib",
-        },
-        content: "Vừa hoàn thành một dự án quan trọng! Cảm thấy rất tự hào về kết quả.",
-        likes: 156,
-        comments: 18,
-        shares: 8,
-        timestamp: "4 giờ trước",
-        type: "post"
-    },
-    {
-        id: "3",
-        author: {
-            name: "Lê Minh C",
-            avatar: "/userAvatar.png",
-            username: "@leminhc",
-        },
-        content: "Ai muốn đi ăn cơm tối nay không? Có quán ngon gần đây! 🍜",
-        likes: 89,
-        comments: 24,
-        shares: 5,
-        timestamp: "6 giờ trước",
-        type: "post"
-    },
-    {
-        id: "4",
-        author: {
-            name: "Phạm Văn D",
-            avatar: "/userAvatar.png",
-            username: "@phamvand",
-        },
-        content: "Mọi người nghĩ sao về việc học lập trình AI? Tớ thấy nó rất thú vị!",
-        likes: 45,
-        comments: 10,
-        shares: 2,
-        timestamp: "1 ngày trước",
-        type: "post"
-    },
-];
+// No mock data needed, results fetched from API
 
-const mockVideos = [
-    {
-        id: "v1",
-        author: {
-            name: "Nguyễn Văn A",
-            avatar: "/userAvatar.png",
-            username: "@nguyenvana",
-        },
-        content: "Vlog du lịch Đà Nẵng - Ngày đầu tiên khám phá thành phố!",
-        video: "https://www.w3schools.com/html/mov_bbb.mp4",
-        likes: 542,
-        comments: 87,
-        shares: 45,
-        timestamp: "1 giờ trước",
-        type: "video"
-    },
-    {
-        id: "v2",
-        author: {
-            name: "Trần Thị B",
-            avatar: "/userAvatar.png",
-            username: "@tranthib",
-        },
-        content: "Hướng dẫn nấu ăn: Cách làm bánh mì thơm ngon kiểu Việt Nam 👨‍🍳",
-        video: "https://www.w3schools.com/html/mov_bbb.mp4",
-        likes: 893,
-        comments: 156,
-        shares: 234,
-        timestamp: "3 giờ trước",
-        type: "video"
-    },
-];
+interface SearchResultUser {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+    email: string;
+}
 
-const mockUsers = [
-    { id: "u1", name: "Nguyễn Văn A", username: "@nguyenvana", avatar: "/userAvatar.png" },
-    { id: "u2", name: "Trần Thị B", username: "@tranthib", avatar: "/userAvatar.png" },
-    { id: "u3", name: "Lê Minh C", username: "@leminhc", avatar: "/userAvatar.png" },
-    { id: "u4", name: "Phạm Văn D", username: "@phamvand", avatar: "/userAvatar.png" },
-];
+interface SearchGroup {
+    id: string;
+    name: string;
+    cover: string;
+    members: number;
+    privacy: string;
+}
 
-const mockGroups = [
-    {
-        id: "g1",
-        name: "Cộng đồng ReactJS Việt Nam",
-        members: 45000,
-        privacy: "Public",
-        description: "Nơi chia sẻ kiến thức về ReactJS ecosystem.",
-        cover: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=300&fit=crop"
-    },
-    {
-        id: "g2",
-        name: "Hội những người yêu Thú Cưng",
-        members: 12500,
-        privacy: "Private",
-        description: "Group dành cho các sen và boss.",
-        cover: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=300&fit=crop"
-    },
-    {
-        id: "g3",
-        name: "Review Du Lịch",
-        members: 89000,
-        privacy: "Public",
-        description: "Chia sẻ kinh nghiệm du lịch S-Vietnam.",
-        cover: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800&h=300&fit=crop"
-    },
-];
-
+interface SearchPost {
+    id: string;
+    content: string;
+    mediaUrls?: string[];
+    video?: string;
+    type?: string;
+    _count?: {
+        reactions: number;
+        comments: number;
+    };
+    likes?: number;
+    comments?: number;
+    shares?: number;
+    createdAt: string;
+    author: {
+        id: string;
+        name: string;
+        avatarUrl?: string;
+    };
+}
 
 export default function SearchPage() {
     const searchParams = useSearchParams();
@@ -159,39 +70,74 @@ export default function SearchPage() {
     };
 
     const [activeTab, setActiveTab] = useState<"all" | "posts" | "people" | "videos" | "groups">("all");
+    const [users, setUsers] = useState<SearchResultUser[]>([]);
+    const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+    const [posts, setPosts] = useState<SearchPost[]>([]);
+    const [isLoadingPosts, setIsLoadingPosts] = useState(false);
 
-    const filteredPosts = query
-        ? mockPosts.filter((post) =>
-            post.content.toLowerCase().includes(lowerQuery) ||
-            post.author.name.toLowerCase().includes(lowerQuery)
-        )
-        : [];
+    useEffect(() => {
+        if (query) {
+            const fetchUsers = async () => {
+                setIsLoadingUsers(true);
+                try {
+                    const results = await friendsAPI.searchUsers(query);
+                    setUsers(results);
+                } catch (error) {
+                    console.error("Failed to fetch users:", error);
+                    setUsers([]);
+                } finally {
+                    setIsLoadingUsers(false);
+                }
+            };
 
-    const filteredVideos = query
-        ? mockVideos.filter((video) =>
-            video.content.toLowerCase().includes(lowerQuery) ||
-            video.author.name.toLowerCase().includes(lowerQuery)
-        )
-        : [];
+            const fetchPosts = async () => {
+                setIsLoadingPosts(true);
+                try {
+                    let result;
+                    if (query.startsWith('#')) {
+                        result = await postAPI.searchByHashtag(query.substring(1));
+                    } else {
+                        // Fallback: search by text in latest posts if backend doesn't support specific search
+                        // In a real app, backend would handle this. 
+                        // For now we use getPosts and filter for the demo.
+                        result = await postAPI.getPosts(1, 50);
+                        if (result.data) {
+                            result.data = result.data.filter((p: SearchPost) =>
+                                p.content.toLowerCase().includes(query.toLowerCase()) ||
+                                p.author.name.toLowerCase().includes(query.toLowerCase())
+                            );
+                        }
+                    }
+                    setPosts(result.data || []);
+                } catch (error) {
+                    console.error("Failed to fetch posts:", error);
+                    setPosts([]);
+                } finally {
+                    setIsLoadingPosts(false);
+                }
+            };
 
-    const filteredUsers = query
-        ? mockUsers.filter((user) =>
-            user.name.toLowerCase().includes(lowerQuery) ||
-            user.username.toLowerCase().includes(lowerQuery)
-        )
-        : [];
+            fetchUsers();
+            fetchPosts();
+        } else {
+            setUsers([]);
+            setPosts([]);
+        }
+    }, [query]);
 
-    const filteredGroups = query
-        ? mockGroups.filter((group) =>
-            group.name.toLowerCase().includes(lowerQuery) ||
-            group.description.toLowerCase().includes(lowerQuery)
-        )
-        : [];
+    const filteredPosts = posts;
+    const filteredVideos = posts.filter(p => p.type === 'video');
+    const filteredUsers = users;
+    const filteredGroups: SearchGroup[] = [];
 
     const renderUsers = () => (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
             <h2 className="text-lg font-bold mb-4 text-gray-800">Mọi người</h2>
-            {filteredUsers.length > 0 ? (
+            {isLoadingUsers ? (
+                <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f9622e]"></div>
+                </div>
+            ) : filteredUsers.length > 0 ? (
                 <div className="space-y-4">
                     {filteredUsers.map(user => (
                         <div
@@ -199,10 +145,10 @@ export default function SearchPage() {
                             onClick={() => router.push(`/profile/${user.id}`)}
                             className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer"
                         >
-                            <Image src={user.avatar} alt={user.name} width={48} height={48} className="rounded-full bg-gray-100 ring-2 ring-gray-50" />
+                            <Image src={user.avatarUrl || "/userAvatar.png"} alt={user.name} width={48} height={48} className="rounded-full bg-gray-100 ring-2 ring-gray-50" />
                             <div>
                                 <p className="font-semibold text-gray-900">{user.name}</p>
-                                <p className="text-sm text-gray-500">{user.username}</p>
+                                <p className="text-sm text-gray-500">{user.email}</p>
                             </div>
                             <button
                                 onClick={(e) => {
@@ -266,14 +212,31 @@ export default function SearchPage() {
         </div>
     );
 
-    const renderPosts = (items: typeof mockPosts, title: string = "Bài viết") => (
+    const renderPosts = (items: SearchPost[], title: string = "Bài viết") => (
         <div className="space-y-4">
             {activeTab !== 'all' && <h2 className="text-lg font-bold text-gray-800 mb-3">{title}</h2>}
-            {items.length > 0 ? (
+            {isLoadingPosts ? (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 flex justify-center">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f9622e]"></div>
+                        <p className="text-sm text-gray-500">Đang tìm bài viết...</p>
+                    </div>
+                </div>
+            ) : items.length > 0 ? (
                 items.map((post) => (
                     <PostCard
                         key={post.id}
                         {...post}
+                        author={{
+                            id: post.author.id,
+                            name: post.author.name,
+                            avatar: post.author.avatarUrl || "/userAvatar.png"
+                        }}
+                        image={post.mediaUrls?.[0]}
+                        likes={post.likes ?? post._count?.reactions ?? 0}
+                        comments={post.comments ?? post._count?.comments ?? 0}
+                        shares={post.shares ?? 0}
+                        timestamp={new Date(post.createdAt).toLocaleString("vi-VN")}
                         isOwner={false}
                     />
                 ))
@@ -322,11 +285,20 @@ export default function SearchPage() {
                 <div className="space-y-4">
                     {activeTab === 'all' && (
                         <>
-                            {filteredUsers.length > 0 && renderUsers()}
+                            {(filteredUsers.length > 0 || isLoadingUsers) && renderUsers()}
                             {filteredGroups.length > 0 && renderGroups()}
                             <div>
                                 <h2 className="text-lg font-bold mb-3 text-gray-800">Bài viết & Video</h2>
-                                {renderPosts([...filteredPosts, ...filteredVideos])}
+                                {(filteredPosts.length > 0 || filteredVideos.length > 0 || isLoadingPosts)
+                                    ? renderPosts([...filteredPosts, ...filteredVideos])
+                                    : (
+                                        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
+                                            <p className="text-lg text-gray-500">
+                                                Không tìm thấy bài viết hoặc video nào.
+                                            </p>
+                                        </div>
+                                    )
+                                }
                             </div>
                         </>
                     )}

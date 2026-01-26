@@ -278,4 +278,41 @@ export const friendsAPI = {
       throw error;
     }
   },
+
+  async searchUsers(query: string, limit: number = 20) {
+    const token = localStorage.getItem("access_token");
+    if (!token) return [];
+    
+    try {
+      const response = await fetch(
+        `${API_URL}/friends/search?q=${encodeURIComponent(query)}&limit=${limit}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 401) {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("user");
+          window.dispatchEvent(new Event("auth-change"));
+        }
+        return [];
+      }
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to search users");
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error("searchUsers error:", error);
+      return [];
+    }
+  },
 };

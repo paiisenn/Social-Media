@@ -11,7 +11,7 @@ import { triggerStatsUpdate } from "@/hooks/useUserStats";
 interface Post {
   id: string;
   author: {
-    id?: string;
+    id: string;
     name: string;
     avatar: string;
     username?: string;

@@ -403,5 +403,36 @@ export const postAPI = {
             console.error('toggleReaction error:', error);
             throw error;
         }
+    },
+
+    async searchByHashtag(hashtag: string, page = 1, limit = 20) {
+        const token = localStorage.getItem("access_token");
+        try {
+            const response = await fetch(`${API_URL}/posts/hashtag/${hashtag}?page=${page}&limit=${limit}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+            });
+
+            if (response.status === 401) {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('user');
+                    window.dispatchEvent(new Event('auth-change'));
+                }
+                return { data: [] };
+            }
+
+            if (!response.ok) {
+                return { data: [] };
+            }
+
+            return response.json();
+        } catch (error) {
+            console.error('searchByHashtag error:', error);
+            return { data: [] };
+        }
     }
 };

@@ -20,31 +20,33 @@ import { notificationsAPI, Notification } from "@/services/notifications.service
 
 function getNotificationIcon(type: string) {
   switch (type) {
-    case "like":
+    case "POST_LIKE":
       return (
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 ring-2 ring-white shadow-sm">
           <Heart className="h-4 w-4 text-red-500 fill-red-500" />
         </div>
       );
-    case "comment":
+    case "POST_COMMENT":
+    case "COMMENT_REPLY":
       return (
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 ring-2 ring-white shadow-sm">
           <MessageCircle className="h-4 w-4 text-blue-500 fill-blue-500" />
         </div>
       );
-    case "follow":
+    case "FRIEND_REQUEST":
+    case "FRIEND_ACCEPTED":
       return (
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 ring-2 ring-white shadow-sm">
           <Users className="h-4 w-4 text-purple-500 fill-purple-500" />
         </div>
       );
-    case "share":
+    case "MESSAGE":
       return (
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 ring-2 ring-white shadow-sm">
           <Share className="h-4 w-4 text-green-500 fill-green-500" />
         </div>
       );
-    case "system":
+    case "POST_TAG":
       return (
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 ring-2 ring-white shadow-sm">
           <Bell className="h-4 w-4 text-[#f9622e] fill-[#f9622e]" />
@@ -86,7 +88,7 @@ export default function NotificationsPage() {
   useEffect(() => {
     const fetchNotifications = async () => {
       if (!isAuthenticated) return;
-      
+
       try {
         setIsLoading(true);
         setError(null);
@@ -110,13 +112,13 @@ export default function NotificationsPage() {
   }, [loading, isAuthenticated, router]);
 
   const filtered =
-    filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
+    filter === "unread" ? notifications.filter((n) => !n.isRead) : notifications;
 
   const handleMarkAsRead = async (id: string) => {
     try {
       await notificationsAPI.markAsRead(id);
       setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
     } catch (err) {
       console.error("Error marking as read:", err);
@@ -126,7 +128,7 @@ export default function NotificationsPage() {
   const handleMarkAllAsRead = async () => {
     try {
       await notificationsAPI.markAllAsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     } catch (err) {
       console.error("Error marking all as read:", err);
     }
@@ -156,7 +158,7 @@ export default function NotificationsPage() {
             <p className="text-red-600">{error}</p>
           </div>
         </div>
-      ) : (      <div className="mx-auto max-w-4xl pb-2">
+      ) : (<div className="mx-auto max-w-4xl pb-2">
         <div className="mb-4 rounded-2xl bg-linear-to-r from-orange-50 to-white p-6 shadow-sm border border-orange-100/50">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -173,7 +175,7 @@ export default function NotificationsPage() {
               </p>
             </div>
 
-            {notifications.some((n) => !n.read) && (
+            {notifications.some((n) => !n.isRead) && (
               <button
                 onClick={handleMarkAllAsRead}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-100/50 text-[#f9622e] hover:bg-[#f9622e] hover:text-white font-medium transition-all cursor-pointer group"
@@ -190,8 +192,8 @@ export default function NotificationsPage() {
             <button
               onClick={() => setFilter("all")}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer ${filter === "all"
-                  ? "bg-white text-[#f9622e] shadow-md"
-                  : "text-gray-500 hover:text-gray-900"
+                ? "bg-white text-[#f9622e] shadow-md"
+                : "text-gray-500 hover:text-gray-900"
                 }`}
             >
               Tất cả
@@ -199,8 +201,8 @@ export default function NotificationsPage() {
             <button
               onClick={() => setFilter("unread")}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer ${filter === "unread"
-                  ? "bg-white text-[#f9622e] shadow-md"
-                  : "text-gray-500 hover:text-gray-900"
+                ? "bg-white text-[#f9622e] shadow-md"
+                : "text-gray-500 hover:text-gray-900"
                 }`}
             >
               <Filter className="w-4 h-4" />
@@ -210,7 +212,7 @@ export default function NotificationsPage() {
 
         </div>
 
-        <div className="space-y-5 pb-10">
+        <div className="space-y-4 pb-2">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-3xl bg-white py-12 px-10 text-center shadow-sm border border-gray-100 animate-in fade-in zoom-in duration-500">
               <div className="h-24 w-24 bg-orange-100/80 rounded-full flex items-center justify-center mb-6 ring-8 ring-orange-50/30">
@@ -230,20 +232,20 @@ export default function NotificationsPage() {
                 key={notif.id}
                 style={{ animationDelay: `${index * 50}ms` }}
                 onClick={() => handleMarkAsRead(notif.id)}
-                className={`group relative flex gap-5 rounded-2xl p-5 transition-all duration-300 cursor-pointer border hover:shadow-lg hover:-translate-y-1 animate-in slide-in-from-bottom-2 fade-in ${notif.read
-                    ? "bg-white border-gray-100 hover:border-orange-200 shadow-sm"
-                    : "bg-orange-50/30 border-orange-100 hover:border-orange-200 shadow-md shadow-orange-100/50"
+                className={`group relative flex gap-4 rounded-2xl p-4 transition-all duration-300 cursor-pointer border hover:shadow-lg hover:-translate-y-1 animate-in slide-in-from-bottom-2 fade-in ${notif.isRead
+                  ? "bg-white border-gray-100 hover:border-orange-200 shadow-sm"
+                  : "bg-orange-50 border-orange-100 hover:border-orange-400 shadow-md shadow-orange-100/50"
                   }`}
               >
                 <div className="relative shrink-0 self-start mt-1">
                   <Image
-                    src={notif.user?.avatarUrl || "/userAvatar.png"}
-                    alt={notif.user?.name || "User"}
+                    src={notif.actor?.avatarUrl || "/userAvatar.png"}
+                    alt={notif.actor?.name || "User"}
                     width={60}
                     height={60}
-                    className="h-14 w-14 rounded-full object-cover ring-4 ring-white shadow-md transition-transform group-hover:scale-105"
+                    className="h-12 w-12 rounded-full object-cover ring-4 ring-white shadow-md transition-transform group-hover:scale-105"
                   />
-                  <div className="absolute -bottom-2 -right-2 transform scale-90 group-hover:scale-110 transition-transform">
+                  <div className="absolute -bottom-2 -right-2 transform scale-90 group-hover:scale-105 transition-transform">
                     {getNotificationIcon(notif.type)}
                   </div>
                 </div>
@@ -252,9 +254,9 @@ export default function NotificationsPage() {
                   <div className="flex flex-col gap-1.5">
                     <p className="text-[15px] text-gray-800 leading-relaxed">
                       <span className="font-bold text-gray-900 duration-200 group-hover:text-[#f9622e] transition-colors text-base">
-                        {notif.user?.name || "User"}
+                        {notif.actor?.name || "User"}
                       </span>{" "}
-                      <span className="text-gray-600">{notif.action}</span>
+                      <span className="text-gray-600">{notif.message}</span>
                     </p>
 
                     {notif.content && (
@@ -270,8 +272,8 @@ export default function NotificationsPage() {
                   </div>
                 </div>
 
-                {!notif.read && (
-                  <div className="absolute top-6 right-6 h-3 w-3 rounded-full bg-[#f9622e] ring-4 ring-orange-100 shadow-sm animate-pulse" />
+                {!notif.isRead && (
+                  <div className="absolute top-3 right-3 h-3 w-3 rounded-full bg-[#f9622e] ring-4 ring-orange-100 shadow-sm animate-pulse" />
                 )}
 
                 <button

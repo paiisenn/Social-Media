@@ -3,6 +3,7 @@
 import { Heart, MessageCircle, Share, MoreHorizontal, Bookmark, Trash2, Edit, X, Check, EyeOff, Flag, Send, Undo2, ThumbsUp } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { AuthPromptModal } from "@/components/ui/AuthPromptModal";
 import { useToast } from "@/context/ToastContext";
@@ -12,6 +13,7 @@ import { postAPI } from "@/services/post.service";
 interface PostCardProps {
   id: string;
   author: {
+    id: string;
     name: string;
     avatar: string;
     username?: string;
@@ -34,7 +36,7 @@ interface PostCardProps {
 
 interface Comment {
   id: string;
-  author: { name: string; avatar: string };
+  author: { id?: string; name: string; avatar: string };
   content: string;
   timestamp: string;
 }
@@ -59,6 +61,7 @@ export function PostCard({
 }: PostCardProps) {
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
+  const router = useRouter();
   // If API only returns boolean isLiked, default to "LIKE" if true
   const [currentReaction, setCurrentReaction] = useState<string | null>(
     initialReactionType || (initialIsLiked ? "LIKE" : null)
@@ -109,13 +112,14 @@ export function PostCard({
           const response = await (postAPI as any).getComments(id);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const data = Array.isArray(response) ? response : (response as any).data || [];
-          
+
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const mappedComments = data.map((c: any) => ({
             id: c.id,
-            author: { 
-              name: c.author?.name || "Người dùng", 
-              avatar: c.author?.avatarUrl || "/userAvatar.png" 
+            author: {
+              id: c.author?.id,
+              name: c.author?.name || "Người dùng",
+              avatar: c.author?.avatarUrl || "/userAvatar.png"
             },
             content: c.content,
             timestamp: new Date(c.createdAt).toLocaleString("vi-VN")
@@ -331,14 +335,18 @@ export function PostCard({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Image
-              src="/userAvatar.png"
+              src={author.avatar || "/userAvatar.png"}
               alt={author.name}
               width={40}
               height={40}
-              className="rounded-full object-cover ring-2 ring-gray-50"
+              onClick={() => router.push(`/profile/${author.id}`)}
+              className="rounded-full object-cover ring-2 ring-gray-50 cursor-pointer hover:opacity-80 transition-opacity"
             />
             <div>
-              <h4 className="font-bold text-gray-900 leading-none hover:text-[#f9622e] cursor-pointer transition-colors">
+              <h4
+                onClick={() => router.push(`/profile/${author.id}`)}
+                className="font-bold text-gray-900 leading-none hover:text-[#f9622e] cursor-pointer transition-colors"
+              >
                 {author.name}
               </h4>
               <p className="text-xs text-gray-500 mt-1">
@@ -437,6 +445,7 @@ export function PostCard({
                 width={600}
                 height={400}
                 className="w-full h-auto object-cover max-h-125"
+                style={{ width: "100%", height: "auto" }}
               />
             </div>
           )}
@@ -594,7 +603,10 @@ export function PostCard({
                     />
                     <div className="flex-1">
                       <div className="bg-gray-50 rounded-2xl rounded-tl-none px-4 py-2 inline-block">
-                        <h5 className="text-sm font-bold text-gray-900 hover:underline hover:text-[#f9622e] transition-colors duration-150 cursor-pointer">
+                        <h5
+                          onClick={() => router.push(`/profile/${comment.author.id || '#'}`)}
+                          className="text-sm font-bold text-gray-900 hover:underline hover:text-[#f9622e] transition-colors duration-150 cursor-pointer"
+                        >
                           {comment.author.name}
                         </h5>
                         <p className="text-sm text-gray-800 mt-0.5">{comment.content}</p>

@@ -28,6 +28,7 @@ import { PostCard } from "@/components/post/PostCard";
 import { useAuth } from "@/hooks/useAuth";
 import { postAPI } from "@/services/post.service";
 import { friendsAPI, Friend } from "@/services/friends.service";
+import { userAPI } from "@/services/user.service";
 import { useUserStats, triggerStatsUpdate } from "@/hooks/useUserStats";
 // Helper function to generate username from name
 function generateUsername(name: string): string {
@@ -37,6 +38,7 @@ function generateUsername(name: string): string {
 interface Post {
   id: string;
   author: {
+    id: string;
     name: string;
     avatar: string;
     username: string;
@@ -58,6 +60,19 @@ function formatDate(dateString: string) {
     year: "numeric",
     month: "long",
   });
+}
+
+function formatJoinDate(dateString: string | undefined | null) {
+  if (!dateString) return "Chưa cập nhật";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Chưa cập nhật";
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    return `Tháng ${month} năm ${year}`;
+  } catch (e) {
+    return "Chưa cập nhật";
+  }
 }
 
 function formatStatNumber(num: number): string {
@@ -270,6 +285,7 @@ export default function ProfilePage() {
       const mappedPosts = postsData.map((p: PostData) => ({
         id: p.id,
         author: {
+          id: p.author.id,
           name: p.author.name,
           avatar: p.author.avatarUrl || "/userAvatar.png",
           username: "@" + (p.author.name ? p.author.name.replace(/\s+/g, '').toLowerCase() : "user")
@@ -298,8 +314,25 @@ export default function ProfilePage() {
     if (user) {
       fetchPosts();
       fetchFriends();
+
+      // Fetch user profile detail to get createdAt
+      const fetchUserDetails = async () => {
+        try {
+          const userDataResult = await userAPI.getUserById(user.id);
+          const actualUser = userDataResult.data || userDataResult;
+          if (actualUser && actualUser.createdAt) {
+            updateUser({ createdAt: actualUser.createdAt });
+          }
+        } catch (error) {
+          console.error("Failed to fetch user details", error);
+        }
+      };
+
+      if (!user.createdAt) {
+        fetchUserDetails();
+      }
     }
-  }, [user, fetchPosts]);
+  }, [user?.id, fetchPosts, fetchFriends]);
 
   const handleCreatePost = async (postData: {
     content: string;
@@ -557,7 +590,7 @@ export default function ProfilePage() {
                         )}
                         <div className="flex items-center gap-1.5">
                           <Calendar className="h-4 w-4" />
-                          Đã tham gia từ {formatDate("2026-01-15")}
+                          Đã tham gia từ {formatJoinDate(user?.createdAt)}
                         </div>
                       </div>
                     </>
