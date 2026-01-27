@@ -189,7 +189,7 @@ export function SidebarRight() {
               </div>
 
               {/* Tab container */}
-              <div className="border-b border-gray-200">
+              <div className="border-b border-gray-200  ml-1">
                 <div className="relative flex items-center gap-6">
                   <button
                     ref={primaryTabRef}

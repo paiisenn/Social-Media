@@ -35,7 +35,14 @@ const trendingItems = [
 
 // Helper function to generate username from name
 function generateUsername(name: string): string {
-  return "@" + name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+  return "@" + name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "");
 }
 
 function SidebarItem({

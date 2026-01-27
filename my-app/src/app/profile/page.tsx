@@ -25,14 +25,24 @@ import { useRouter } from "next/navigation";
 import MainLayout from "@/app/main/layout";
 import { CreatePostSimple } from "@/components/post/CreatePostSimple";
 import { PostCard } from "@/components/post/PostCard";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
+import { MediaLibraryModal } from "@/components/media/MediaLibraryModal";
 import { useAuth } from "@/hooks/useAuth";
 import { postAPI } from "@/services/post.service";
 import { friendsAPI, Friend } from "@/services/friends.service";
 import { userAPI } from "@/services/user.service";
 import { useUserStats, triggerStatsUpdate } from "@/hooks/useUserStats";
+
 // Helper function to generate username from name
 function generateUsername(name: string): string {
-  return "@" + name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+  return "@" + name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "");
 }
 
 interface Post {
@@ -104,22 +114,23 @@ export default function ProfilePage() {
   // User data from auth
   const userName = user?.name || "";
   const userEmail = user?.email || "";
-  const userAvatar = user?.avatar || "/userAvatar.png";
+  const avatarUrl = user?.avatar || "/userAvatar.png";
   const username = user?.username || generateUsername(userName);
 
   // Define profile data states
   const [coverImage, setCoverImage] = useState("");
-  const [avatar, setAvatar] = useState(userAvatar);
+  const [avatar, setAvatar] = useState(avatarUrl);
   const [bio, setBio] = useState("");
   const [location, setLocation] = useState("");
   const [dob, setDob] = useState("");
 
   // Track saved images to allow reverting on cancel
   const [savedCoverImage, setSavedCoverImage] = useState("");
-  const [savedAvatar, setSavedAvatar] = useState(userAvatar);
+  const [savedAvatar, setSavedAvatar] = useState(avatarUrl);
 
   // Editing states
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [editedUsername, setEditedUsername] = useState("");
   const [editedBio, setEditedBio] = useState("");
@@ -132,6 +143,13 @@ export default function ProfilePage() {
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [isLoadingFriends, setIsLoadingFriends] = useState(false);
+
+  // Lightbox state
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // Media Library state
+  const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
 
   const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -196,29 +214,51 @@ export default function ProfilePage() {
     setEditedBio(bio);
     setEditedLocation(location);
     setEditedDob(dob);
-    setAvatar(userAvatar);
+    setAvatar(avatarUrl);
     setIsEditing(true);
   };
 
-  const handleSaveProfile = () => {
-    // Save changes to global auth state
-    updateUser({
-      name: editedName,
-      username: editedUsername,
-      avatar: avatar,
-    });
+  const handleSaveProfile = async () => {
+    if (!user?.id) return;
+    setIsSaving(true);
+    try {
+      const updateData: any = {};
 
-    // Save other profile-specific changes
-    setBio(editedBio);
-    setLocation(editedLocation);
-    setDob(editedDob);
+      // Only include fields that have actually changed
+      if (editedName !== user.name) {
+        updateData.name = editedName;
+      }
 
-    // Persist images locally in this component
-    setSavedCoverImage(coverImage);
-    setSavedAvatar(avatar);
+      if (avatar !== avatarUrl && !avatar.startsWith('blob:')) {
+        updateData.avatarUrl = avatar;
+      }
 
-    setIsEditing(false);
-    toast("Cập nhật thông tin thành công!", "success");
+      // If there are changes to sync with backend
+      if (Object.keys(updateData).length > 0) {
+        await userAPI.updateProfile(user.id, updateData);
+      }
+
+      // Update global auth state (localStorage + app state)
+      updateUser({
+        name: editedName,
+        avatar: avatar,
+      });
+
+      // Update other local profile states
+      setBio(editedBio);
+      setLocation(editedLocation);
+      setDob(editedDob);
+      setSavedCoverImage(coverImage);
+      setSavedAvatar(avatar);
+
+      setIsEditing(false);
+      toast("Cập nhật thông tin thành công!", "success");
+      triggerStatsUpdate();
+    } catch (error: any) {
+      toast(error.message || "Cập nhật thông tin thất bại", "error");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancelEdit = () => {
@@ -288,7 +328,7 @@ export default function ProfilePage() {
           id: p.author.id,
           name: p.author.name,
           avatar: p.author.avatarUrl || "/userAvatar.png",
-          username: "@" + (p.author.name ? p.author.name.replace(/\s+/g, '').toLowerCase() : "user")
+          username: generateUsername(p.author.name || "user")
         },
         content: p.content,
         mediaUrls: p.mediaUrls || [],
@@ -493,17 +533,25 @@ export default function ProfilePage() {
               {/* Avatar */}
               <div className="relative -mt-20 mb-4 inline-block">
                 <Image
-                  src={isEditing ? avatar : userAvatar}
+                  src={isEditing ? avatar : avatarUrl}
                   alt={`${userName}`}
                   width={160}
                   height={160}
                   className="h-40 w-40 rounded-full border-4 border-white object-cover shadow-lg"
                 />
                 {user && isEditing && (
-                  <>
+                  <div className="absolute bottom-2 right-2 flex gap-2">
                     <button
-                      className="absolute bottom-2 right-2 cursor-pointer rounded-full bg-gray-100 p-2 text-gray-600 shadow-lg transition-colors hover:bg-gray-200"
+                      className="cursor-pointer rounded-full bg-[#f9622e] p-2.5 text-white shadow-xl transition-all hover:scale-110 active:scale-95 hover:bg-[#ff7a45]"
+                      onClick={() => setIsMediaLibraryOpen(true)}
+                      title="Chọn từ thư viện"
+                    >
+                      <ImageIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      className="cursor-pointer rounded-full bg-white p-2.5 text-gray-600 shadow-xl transition-all hover:scale-110 active:scale-95 hover:bg-gray-50 border border-gray-100"
                       onClick={handleEditAvatarClick}
+                      title="Tải lên từ máy"
                     >
                       <Camera className="h-5 w-5" />
                     </button>
@@ -514,7 +562,7 @@ export default function ProfilePage() {
                       style={{ display: "none" }}
                       onChange={handleAvatarChange}
                     />
-                  </>
+                  </div>
                 )}
               </div>
 
@@ -537,8 +585,8 @@ export default function ProfilePage() {
                         <input
                           type="text"
                           value={editedUsername}
-                          onChange={(e) => setEditedUsername(e.target.value)}
-                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-lg text-gray-500 placeholder-gray-400 transition-colors focus:border-[#f9622e] focus:outline-none focus:ring-1 focus:ring-[#f9622e]"
+                          readOnly
+                          className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-lg text-gray-400 cursor-not-allowed transition-colors focus:outline-none"
                           placeholder="@tên_đăng_nhập"
                         />
                       </div>
@@ -604,8 +652,10 @@ export default function ProfilePage() {
                       <>
                         <button
                           onClick={handleSaveProfile}
-                          className="flex items-center cursor-pointer gap-2 rounded-lg bg-[#f9622e] px-4 py-2 font-medium text-white transition-colors hover:bg-[#e0501e]"
+                          disabled={isSaving}
+                          className="flex items-center cursor-pointer gap-2 rounded-lg bg-[#f9622e] px-4 py-2 font-medium text-white transition-colors hover:bg-[#e0501e] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
+                          {isSaving && <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1"></div>}
                           Lưu
                         </button>
                         <button
@@ -864,6 +914,10 @@ export default function ProfilePage() {
                         <div
                           key={i}
                           className="aspect-square overflow-hidden rounded-lg bg-gray-100 border border-gray-200 cursor-pointer group"
+                          onClick={() => {
+                            setSelectedImageIndex(i);
+                            setIsLightboxOpen(true);
+                          }}
                         >
                           <Image
                             src={photoUrl}
@@ -917,6 +971,20 @@ export default function ProfilePage() {
 
         </div>
       )}
+
+      {/* Image Lightbox */}
+      <ImageLightbox
+        images={photos}
+        initialIndex={selectedImageIndex}
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+      />
+
+      <MediaLibraryModal
+        isOpen={isMediaLibraryOpen}
+        onClose={() => setIsMediaLibraryOpen(false)}
+        onSelect={(url) => setAvatar(url)}
+      />
     </MainLayout>
   );
 }

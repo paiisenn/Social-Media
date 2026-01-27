@@ -5,7 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Mail, Eye, EyeOff, KeyRound, Loader2 } from "lucide-react"
+import { Mail, Eye, EyeOff, KeyRound, Loader2, Download } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/context/ToastContext"
 import { authAPI } from "@/services/api"
@@ -60,7 +60,17 @@ export default function LoginPage() {
     const Year = new Date().getFullYear()
 
     return (
-        <div className="flex min-h-screen w-full bg-gray-50">
+        <div className="relative flex min-h-screen w-full bg-gray-50">
+            {/* Download APK Button */}
+            <Link
+                href="https://drive.google.com/drive/u/0/folders/1wJ7AAfq6sfNpA_zqNhbYCn-CSc-EXU1E"
+                className="fixed right-6 top-4 z-20 flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-[#f9622e] shadow-md ring-1 ring-gray-200 duration-200 transition-all hover:-translate-y-0.5 hover:bg-[#f9622e]/10 hover:shadow-lg active:translate-y-0"
+                target="_blank"
+            >
+                <Download className="h-4 w-4" />
+                <span>Tải APK</span>
+            </Link>
+
             {/* Left Side - Brand/Logo */}
             <div className="hidden w-1/2 h-screen flex-col items-center justify-center bg-white p-6 lg:flex relative overflow-hidden">
                 {/* Decorative Background Elements */}

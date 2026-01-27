@@ -21,6 +21,7 @@ import { useToast } from "@/context/ToastContext";
 import { useRef, useState, useEffect } from "react";
 import MainLayout from "@/app/main/layout";
 import { PostCard } from "@/components/post/PostCard";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthPromptModal } from "@/components/ui/AuthPromptModal";
@@ -29,6 +30,17 @@ import { postAPI } from "@/services/post.service";
 import { userStatsAPI } from "@/services/user-stats.service";
 
 // No mock data needed
+
+function generateUsername(name: string): string {
+    return "@" + name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "D")
+        .toLowerCase()
+        .replace(/\s+/g, "_")
+        .replace(/[^a-z0-9_]/g, "");
+}
 
 function formatDate(dateString: string) {
     return new Date(dateString).toLocaleDateString("vi-VN", {
@@ -74,6 +86,11 @@ export default function UserProfilePage() {
     const [activeTab, setActiveTab] = useState<"posts" | "friends" | "photos" | "videos">("posts");
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingFriends, setIsLoadingFriends] = useState(false);
+
+    // Lightbox state
+    const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authFeature, setAuthFeature] = useState("");
 
@@ -163,7 +180,7 @@ export default function UserProfilePage() {
                 setUserData({
                     ...actualUserData,
                     stats: statsResult.data || statsResult,
-                    username: actualUserData.username || ("@" + (actualUserData.name ? actualUserData.name.replace(/\s+/g, '').toLowerCase() : "user")),
+                    username: actualUserData.username || generateUsername(actualUserData.name || "user"),
                     joinDate: actualUserData.createdAt,
                     avatar: actualUserData.avatarUrl || "/userAvatar.png"
                 });
@@ -176,7 +193,7 @@ export default function UserProfilePage() {
                         id: p.author.id,
                         name: p.author.name,
                         avatar: p.author.avatarUrl || "/userAvatar.png",
-                        username: "@" + (p.author.name ? p.author.name.replace(/\s+/g, '').toLowerCase() : "user")
+                        username: generateUsername(p.author.name || "user")
                     },
                     content: p.content,
                     image: p.mediaUrls && p.mediaUrls.length > 0 && !p.mediaUrls[0].endsWith(".mp4") ? p.mediaUrls[0] : undefined,
@@ -193,7 +210,7 @@ export default function UserProfilePage() {
                 const extractedPhotos: string[] = [];
                 const extractedVideos: string[] = [];
 
-                mappedPosts.forEach((post) => {
+                mappedPosts.forEach((post: any) => {
                     if (post.image) extractedPhotos.push(post.image);
                     if (post.video) extractedVideos.push(post.video);
                 });
@@ -524,6 +541,10 @@ export default function UserProfilePage() {
                                             <div
                                                 key={i}
                                                 className="aspect-square overflow-hidden rounded-lg bg-gray-100 border border-gray-200 cursor-pointer group"
+                                                onClick={() => {
+                                                    setSelectedImageIndex(i);
+                                                    setIsLightboxOpen(true);
+                                                }}
                                             >
                                                 <Image
                                                     src={photoUrl}
@@ -576,6 +597,14 @@ export default function UserProfilePage() {
                 isOpen={showAuthModal}
                 onClose={() => setShowAuthModal(false)}
                 feature={authFeature}
+            />
+
+            {/* Image Lightbox */}
+            <ImageLightbox
+                images={photos}
+                initialIndex={selectedImageIndex}
+                isOpen={isLightboxOpen}
+                onClose={() => setIsLightboxOpen(false)}
             />
         </MainLayout>
     );

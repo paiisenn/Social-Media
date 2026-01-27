@@ -8,10 +8,8 @@ import {
   PlaySquare,
   Users,
   Bell,
-  Loader2, // Import Loader2
+  Loader2,
   X,
-  Clock,
-  ArrowUpLeft,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useState, useEffect, useRef } from "react";
@@ -31,15 +29,6 @@ const mainNavLinks = [
   { href: "/notifications", icon: Bell, tooltip: "Thông báo" },
 ];
 
-
-// Mock data for recent searches
-const mockRecentSearches = [
-  "ReactJS",
-  "Next.js tutorial",
-  "Tailwind CSS",
-  "Nguyễn Văn A"
-];
-
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -48,7 +37,6 @@ export function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResultUser[]>([]);
-  const [recentSearches, setRecentSearches] = useState(mockRecentSearches);
   const [showDropdown, setShowDropdown] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -75,7 +63,7 @@ export function Navbar() {
     if (!query.trim()) {
       setSearchResults([]);
       setIsSearching(false);
-      setShowDropdown(true);
+      setShowDropdown(false);
       return;
     }
 
@@ -97,9 +85,12 @@ export function Navbar() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
-      setShowDropdown(false);
-      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+    if (e.key === "Enter") {
+      const trimmedQuery = searchQuery.trim();
+      if (trimmedQuery) {
+        setShowDropdown(false);
+        router.push(`/search?q=${encodeURIComponent(trimmedQuery)}`);
+      }
     }
   };
 
@@ -110,7 +101,6 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white shadow-md">
-      {/* Đặt container là relative để định vị cho nav ở giữa */}
       <div className="container relative mx-auto flex h-14 items-center justify-between gap-4 px-4">
 
         {/* === LEFT: Logo & Search === */}
@@ -131,7 +121,6 @@ export function Navbar() {
         </div>
 
         {/* === CENTER: Main Navigation === */}
-        {/* Sử dụng absolute positioning để căn giữa một cách hoàn hảo */}
         <nav className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-4 px-4 md:flex">
           {mainNavLinks.map((link) => (
             <MainNavLink key={link.href} href={link.href} active={pathname === link.href} tooltip={link.tooltip}>
@@ -142,7 +131,6 @@ export function Navbar() {
 
         {/* === RIGHT: Actions & Profile === */}
         <div className="flex items-center justify-end gap-4">
-          {/* Search Bar */}
           {/* Search Bar with Dropdown */}
           <div className="relative hidden w-full max-w-80 md:block" ref={dropdownRef}>
             <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -158,7 +146,7 @@ export function Navbar() {
               value={searchQuery}
               onChange={handleSearchChange}
               onKeyDown={handleKeyDown}
-              onFocus={() => setShowDropdown(true)}
+              onFocus={() => searchQuery.trim() && setShowDropdown(true)}
               className="w-full rounded-full border-none bg-gray-100 py-2 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-500 transition-all duration-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F9622E]"
             />
             {searchQuery && (
@@ -176,124 +164,66 @@ export function Navbar() {
               </button>
             )}
 
-            {/* Dropdown Results */}
-            {showDropdown && (
-              <div className="absolute left-1/2 top-full mt-2 w-[110%] -translate-x-1/2 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5 animate-in fade-in slide-in-from-top-2 duration-200">
-                {!searchQuery ? (
-                  <div className="py-2">
-                    <div className="flex items-center justify-between px-4 pb-2">
-                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tìm kiếm gần đây</h3>
-                      {recentSearches.length > 0 && (
-                        <button
-                          onClick={() => setRecentSearches([])}
-                          className="text-xs text-[#f9622e] hover:underline cursor-pointer"
-                        >
-                          Xóa tất cả
-                        </button>
-                      )}
+            {showDropdown && searchQuery && (
+              <div className="absolute left-1/2 top-full mt-2 w-[112%] -translate-x-1/2 overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-black/10 animate-in fade-in slide-in-from-top-2 duration-200 z-100">
+                <div className="py-2 max-h-[80vh] overflow-y-auto">
+                  {isSearching ? (
+                    <div className="p-6 text-center text-sm text-gray-500 flex flex-col items-center justify-center gap-3">
+                      <Loader2 className="h-6 w-6 animate-spin text-[#f9622e]" />
+                      <span>Đang tìm kiếm mọi người...</span>
                     </div>
-                    {recentSearches.length > 0 ? (
-                      recentSearches.map((term, index) => (
-                        <div key={index} className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 cursor-pointer group transition-colors">
-                          <div
-                            className="flex flex-1 items-center gap-3 min-w-0"
-                            onClick={() => {
-                              setShowDropdown(false);
-                              router.push(`/search?q=${encodeURIComponent(term)}`);
-                            }}
-                          >
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-                              <Clock className="h-4 w-4" />
-                            </div>
-                            <span className="text-sm text-gray-700 font-medium truncate">{term}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSearchQuery(term);
-                                setIsSearching(true);
-                                if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-                                searchTimeoutRef.current = setTimeout(async () => {
-                                  try {
-                                    const results = await friendsAPI.searchUsers(term, 5);
-                                    setSearchResults(results);
-                                  } catch (error) {
-                                    console.error("Search failed:", error);
-                                    setSearchResults([]);
-                                  } finally {
-                                    setIsSearching(false);
-                                  }
-                                }, 500);
-                              }}
-                              className="text-gray-400 opacity-0 group-hover:opacity-100 hover:text-[#f9622e] p-1.5 rounded-full hover:bg-orange-50 transition-all"
-                              title="Điền vào ô tìm kiếm"
-                            >
-                              <ArrowUpLeft className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setRecentSearches(prev => prev.filter((_, i) => i !== index));
-                              }}
-                              className="text-gray-400 opacity-0 group-hover:opacity-100 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200 transition-all"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-4 py-4 text-center text-sm text-gray-500">
-                        Không có lịch sử tìm kiếm
+                  ) : (
+                    <>
+                      <div className="px-4 pb-1">
+                        <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Mọi người</h3>
                       </div>
-                    )}
-                  </div>
-                ) : isSearching ? (
-                  <div className="p-4 text-center text-sm text-gray-500">Đang tìm kiếm...</div>
-                ) : searchResults.length > 0 ? (
-                  <div className="pt-2">
-                    <h3 className="px-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Bạn bè</h3>
-                    {searchResults.map((result) => (
-                      <div
-                        key={result.id}
-                        onClick={() => handleResultClick(result.id)}
-                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer transition-colors"
-                      >
-                        <Image src={result.avatarUrl || "/userAvatar.png"} alt={result.name || "Search Result Avatar"} width={32} height={32} className="rounded-full bg-gray-200" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            <HighlightText text={result.name} highlight={searchQuery} />
-                          </p>
-                          <p className="text-xs text-gray-500 truncate">
-                            <HighlightText text={result.email} highlight={searchQuery} />
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    <div
-                      onClick={() => {
-                        setShowDropdown(false);
-                        router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
-                      }}
-                      className="border-t border-gray-100 mt-2 px-4 py-3 text-center text-sm text-[#f9622e] font-medium hover:bg-orange-50 cursor-pointer"
-                    >
-                      Xem tất cả kết quả cho &quot;{searchQuery}&quot;
-                    </div>
-                  </div>
-                ) : (
-                  <><div className="p-4 text-center text-sm text-gray-500">Không tìm thấy kết quả nào.</div>
-                    <div
-                      onClick={() => {
-                        setShowDropdown(false);
-                        router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
-                      }}
-                      className="border-t border-gray-100 px-4 py-3 text-center text-sm text-[#f9622e] font-medium hover:bg-orange-50 cursor-pointer"
-                    >
-                      Xem tất cả kết quả cho &quot;{searchQuery}&quot;
-                    </div></>
 
-                )}
+                      {searchResults.length > 0 ? (
+                        <div className="space-y-0.5">
+                          {searchResults.map((result) => (
+                            <div
+                              key={`result-${result.id}`}
+                              onClick={() => handleResultClick(result.id)}
+                              className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer transition-colors"
+                            >
+                              <div className="relative h-9 w-9 shrink-0">
+                                <Image
+                                  src={result.avatarUrl || "/userAvatar.png"}
+                                  alt={result.name}
+                                  fill
+                                  className="rounded-full bg-gray-200 object-cover"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-900 truncate">
+                                  <HighlightText text={result.name} highlight={searchQuery} />
+                                </p>
+                                <p className="text-xs text-gray-500 truncate">
+                                  {result.email}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="px-4 py-6 text-center">
+                          <p className="text-sm text-gray-500">Không tìm thấy người dùng nào</p>
+                        </div>
+                      )}
+
+                      <div
+                        onClick={() => {
+                          setShowDropdown(false);
+                          router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+                        }}
+                        className="border-t border-gray-100 mt-2 px-4 py-3 text-center text-sm text-[#f9622e] font-bold hover:bg-orange-50 cursor-pointer transition-all flex items-center justify-center gap-2"
+                      >
+                        <Search className="h-4 w-4" />
+                        Xem tất cả kết quả cho &quot;{searchQuery}&quot;
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -303,7 +233,6 @@ export function Navbar() {
   );
 }
 
-// Component cho các link điều hướng chính ở giữa
 function MainNavLink({ href, active, tooltip, children }: { href: string; active: boolean; tooltip: string; children: React.ReactElement }) {
   const activeClasses = "bg-[#F9622E] text-white";
   const inactiveClasses = "text-gray-500 hover:bg-gray-100 hover:text-[#F9622E]";

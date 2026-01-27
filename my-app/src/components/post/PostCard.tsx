@@ -1,6 +1,26 @@
 "use client"
 
-import { Heart, MessageCircle, Share, MoreHorizontal, Bookmark, Trash2, Edit, X, Check, EyeOff, Flag, Send, Undo2, ThumbsUp } from "lucide-react";
+import {
+  Heart,
+  MessageCircle,
+  Share,
+  MoreHorizontal,
+  Bookmark,
+  Trash2,
+  Edit,
+  X,
+  Check,
+  EyeOff,
+  Flag,
+  Send,
+  Undo2,
+  ThumbsUp,
+  Loader2,
+  Clock,
+  ArrowUpLeft,
+  ChevronDown,
+  Filter
+} from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -39,6 +59,22 @@ interface Comment {
   author: { id?: string; name: string; avatar: string };
   content: string;
   timestamp: string;
+  createdAt: string; // ISO string for sorting
+  likes: number;
+  isLiked?: boolean;
+  reactionType?: "LIKE" | "LOVE" | "HAHA" | "WOW" | "SAD" | "ANGRY" | null;
+}
+
+// Helper function to generate username from name
+function generateUsername(name: string): string {
+  return "@" + name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "");
 }
 
 export function PostCard({
@@ -66,13 +102,16 @@ export function PostCard({
   const [currentReaction, setCurrentReaction] = useState<string | null>(
     initialReactionType || (initialIsLiked ? "LIKE" : null)
   );
-  const [isSaved, setIsSaved] = useState(initialIsSaved);
+  const [isSaved, setIsSaved] = useState(false); // Initialized in useEffect
   const [likeCount, setLikeCount] = useState(initialLikes);
   const [commentCount, setCommentCount] = useState(comments);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(content);
   const [isHidden, setIsHidden] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   // Auth modal state
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -87,8 +126,21 @@ export function PostCard({
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [commentsList, setCommentsList] = useState<Comment[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [commentSortOrder, setCommentSortOrder] = useState<"newest" | "oldest">("newest");
 
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Initialize saved state and local reaction status
+  useEffect(() => {
+    setIsSaved(postAPI.isPostSaved(id));
+
+    // Check for local reaction override
+    const localReaction = postAPI.getLocalReaction(id);
+    if (localReaction) {
+      setCurrentReaction(localReaction === "NONE" ? null : localReaction);
+    }
+  }, [id]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -107,13 +159,11 @@ export function PostCard({
   useEffect(() => {
     if (showComments && commentsList.length === 0 && commentCount > 0) {
       const fetchComments = async () => {
+        setIsLoadingComments(true);
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const response = await (postAPI as any).getComments(id);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const response = await postAPI.getComments(id);
           const data = Array.isArray(response) ? response : (response as any).data || [];
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const mappedComments = data.map((c: any) => ({
             id: c.id,
             author: {
@@ -122,20 +172,31 @@ export function PostCard({
               avatar: c.author?.avatarUrl || "/userAvatar.png"
             },
             content: c.content,
-            timestamp: new Date(c.createdAt).toLocaleString("vi-VN")
+            createdAt: c.createdAt,
+            timestamp: new Date(c.createdAt).toLocaleString("vi-VN"),
+            likes: c._count?.reactions || 0,
+            reactionType: c.reactions?.[0]?.type || null,
+            isLiked: !!c.reactions?.[0]
           }));
           setCommentsList(mappedComments);
         } catch (error) {
           console.error("Error fetching comments:", error);
+        } finally {
+          setIsLoadingComments(false);
         }
       };
       fetchComments();
     }
   }, [showComments, id, commentCount]);
 
+  // Sort comments when order changes
+  const sortedComments = [...commentsList].sort((a, b) => {
+    const dateA = new Date(a.createdAt).getTime();
+    const dateB = new Date(b.createdAt).getTime();
+    return commentSortOrder === "newest" ? dateB - dateA : dateA - dateB;
+  });
+
   const [isReacting, setIsReacting] = useState(false);
-
-
 
   const handleReaction = async (type: string = "LIKE") => {
     if (!isAuthenticated) {
@@ -166,9 +227,8 @@ export function PostCard({
       // Call API
       await postAPI.toggleReaction(id, isRemove ? type : newReaction!);
 
-      // Note: Backend might expect the reaction type to TOGGLE even if removing. 
-      // Based on error "type must be...", we must send a valid type.
-      // Assuming toggleReaction handles "if exists, remove; else add".
+      // Save locally
+      postAPI.setLocalReaction(id, newReaction);
 
     } catch (error) {
       // Revert on error
@@ -186,13 +246,20 @@ export function PostCard({
   };
 
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!isAuthenticated) {
       setAuthModalFeature("lưu bài viết");
       setShowAuthModal(true);
       return;
     }
-    setIsSaved(!isSaved);
+
+    try {
+      const newSavedState = await postAPI.toggleSavePost(id);
+      setIsSaved(newSavedState);
+      toast(newSavedState ? "Đã lưu bài viết" : "Đã bỏ lưu bài viết", "success");
+    } catch (error) {
+      toast("Có lỗi xảy ra khi lưu bài viết", "error");
+    }
   };
 
   const handleEditClick = () => {
@@ -201,11 +268,20 @@ export function PostCard({
     setIsMenuOpen(false);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (onEdit) {
-      onEdit(editedContent);
+      setIsSavingEdit(true);
+      try {
+        await onEdit(editedContent);
+        setIsEditing(false);
+      } catch (error) {
+        console.error("Failed to save edit:", error);
+      } finally {
+        setIsSavingEdit(false);
+      }
+    } else {
+      setIsEditing(false);
     }
-    setIsEditing(false);
   };
 
   const handleCancelEdit = () => {
@@ -249,9 +325,20 @@ export function PostCard({
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
-    onDelete?.();
-    setShowDeleteModal(false);
+  const confirmDelete = async () => {
+    if (onDelete) {
+      setIsDeletingPost(true);
+      try {
+        await onDelete();
+        setShowDeleteModal(false);
+      } catch (error) {
+        console.error("Failed to delete post:", error);
+      } finally {
+        setIsDeletingPost(false);
+      }
+    } else {
+      setShowDeleteModal(false);
+    }
   };
 
   const handleSubmitComment = async () => {
@@ -260,33 +347,62 @@ export function PostCard({
       setShowAuthModal(true);
       return;
     }
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || isSubmittingComment) return;
 
+    setIsSubmittingComment(true);
     try {
-      // Call API to add comment
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await (postAPI as any).addComment(id, commentText);
+      const response = await postAPI.addComment(id, commentText);
 
-      // Create new comment object with response data or fallback
       const newComment: Comment = {
         id: response?.id || Date.now().toString(),
         author: { name: "Bạn", avatar: "/userAvatar.png" },
         content: commentText,
+        createdAt: new Date().toISOString(),
         timestamp: "Vừa xong",
+        likes: 0,
+        isLiked: false,
+        reactionType: null
       };
 
-      setCommentsList([...commentsList, newComment]);
+      setCommentsList((prev) => [newComment, ...prev]);
       setCommentCount((prev) => prev + 1);
       setCommentText("");
       toast("Bình luận thành công!", "success");
     } catch (error) {
       console.error("Error adding comment:", error);
       toast("Không thể thêm bình luận. Vui lòng thử lại.", "error");
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const handleCommentReaction = async (commentId: string, type: string) => {
+    toast("Tính năng này đang được phát triển", "info");
+  };
+
+  const getCommentReactionIcon = (reactionType: string | null | undefined, size = "w-4 h-4") => {
+    if (reactionType === "LOVE") return <Heart className={`${size} fill-red-500 text-red-500`} />;
+    if (reactionType === "HAHA") return <span className="text-sm">😆</span>;
+    if (reactionType === "WOW") return <span className="text-sm">😮</span>;
+    if (reactionType === "SAD") return <span className="text-sm">😢</span>;
+    if (reactionType === "ANGRY") return <span className="text-sm">😡</span>;
+    return <ThumbsUp className={`${size} ${reactionType ? "fill-[#f9622e] text-[#f9622e]" : "text-gray-400"}`} />;
+  };
+
+  const getCommentReactionLabel = (type: string | null | undefined) => {
+    switch (type) {
+      case "LIKE": return "Thích";
+      case "LOVE": return "Yêu thích";
+      case "HAHA": return "Haha";
+      case "WOW": return "Wow";
+      case "SAD": return "Buồn";
+      case "ANGRY": return "Phẫn nộ";
+      default: return "Thích";
     }
   };
 
   // Generate a username if not provided
-  const username = author.username || "@" + author.name.toLowerCase().replace(/\s+/g, "");
+  const username = author.username || generateUsername(author.name);
 
   if (isHidden) {
     return (
@@ -425,15 +541,42 @@ export function PostCard({
                 </button>
                 <button
                   onClick={handleSaveEdit}
-                  className="flex items-center cursor-pointer gap-1 rounded-lg bg-[#f9622e] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#d84e1e] transition-colors"
+                  disabled={isSavingEdit}
+                  className="flex items-center cursor-pointer gap-1 rounded-lg bg-[#f9622e] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#d84e1e] transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  <Check size={14} /> Lưu
+                  {isSavingEdit ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Đang lưu...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={14} /> Lưu
+                    </>
+                  )}
                 </button>
               </div>
             </div>
           ) : (
             <p className="text-gray-800 whitespace-pre-line leading-relaxed mb-3 text-[15px]">
-              {content}
+              {content.split(/(#[\p{L}\d_]+)/u).map((part, index) => {
+                if (part.startsWith("#")) {
+                  const tag = part.slice(1);
+                  return (
+                    <span
+                      key={index}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/trending/${encodeURIComponent(tag)}`);
+                      }}
+                      className="text-[#f9622e] font-semibold hover:underline cursor-pointer"
+                    >
+                      {part}
+                    </span>
+                  );
+                }
+                return part;
+              })}
             </p>
           )}
 
@@ -515,6 +658,7 @@ export function PostCard({
             <button
               onClick={() => setShowComments(!showComments)}
               className={`flex items-center gap-2 transition-colors group cursor-pointer ${showComments ? "text-blue-500" : "text-gray-500 hover:text-blue-500"}`}
+              title="Bình luận"
             >
               <div className={`p-2 rounded-full transition-colors ${showComments ? "bg-blue-50" : "group-hover:bg-blue-50"}`}>
                 <MessageCircle className={`w-5 h-5 group-active:scale-90 transition-transform ${showComments ? "fill-blue-500" : ""}`} />
@@ -533,6 +677,7 @@ export function PostCard({
                 }
               }}
               className="flex items-center gap-2 text-gray-500 hover:text-green-500 transition-colors group cursor-pointer"
+              title="Chia sẻ"
             >
               <div className="p-2 rounded-full group-hover:bg-green-50 transition-colors">
                 <Share className="w-5 h-5 group-active:scale-90 transition-transform" />
@@ -550,6 +695,7 @@ export function PostCard({
               ? "text-[#f9622e] bg-orange-50"
               : "text-gray-500 hover:bg-gray-50 hover:text-[#f9622e]"
               }`}
+            title={`${isSaved ? "Bỏ lưu bài viết" : "Lưu bài viết"}`}
           >
             <Bookmark
               className={`w-5 h-5 transition-transform group-active:scale-90 ${isSaved ? "fill-[#f9622e]" : ""
@@ -582,43 +728,122 @@ export function PostCard({
                   />
                   <button
                     onClick={handleSubmitComment}
-                    disabled={!commentText.trim()}
+                    disabled={!commentText.trim() || isSubmittingComment}
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#f9622e] hover:bg-orange-50 rounded-full disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-100 hover:cursor-pointer disabled:hover:bg-transparent transition-colors"
                   >
-                    <Send size={16} />
+                    {isSubmittingComment ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Send size={16} />
+                    )}
                   </button>
                 </div>
               </div>
 
+              {/* Comment Controls (Sort) */}
+              {commentsList.length > 0 && (
+                <div className="flex items-center justify-between mb-4 px-1">
+                  <span className="text-sm font-bold text-gray-700">Tất cả bình luận</span>
+                  <div className="flex items-center gap-2 relative">
+                    <button
+                      onClick={() => setCommentSortOrder(commentSortOrder === "newest" ? "oldest" : "newest")}
+                      className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-[#f9622e] transition-colors bg-gray-50 px-2 py-1 rounded-lg cursor-pointer"
+                    >
+                      <Filter size={12} />
+                      Sắp xếp: {commentSortOrder === "newest" ? "Mới nhất" : "Cũ nhất"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Comments List */}
               <div className="space-y-4">
-                {commentsList.map((comment) => (
-                  <div key={comment.id} className="flex gap-3 group">
-                    <Image
-                      src={comment.author.avatar}
-                      alt={comment.author.name}
-                      width={32}
-                      height={32}
-                      className="rounded-full object-cover w-8 h-8 ring-2 ring-gray-50 shrink-0"
-                    />
-                    <div className="flex-1">
-                      <div className="bg-gray-50 rounded-2xl rounded-tl-none px-4 py-2 inline-block">
-                        <h5
-                          onClick={() => router.push(`/profile/${comment.author.id || '#'}`)}
-                          className="text-sm font-bold text-gray-900 hover:underline hover:text-[#f9622e] transition-colors duration-150 cursor-pointer"
-                        >
-                          {comment.author.name}
-                        </h5>
-                        <p className="text-sm text-gray-800 mt-0.5">{comment.content}</p>
-                      </div>
-                      <div className="flex items-center gap-4 mt-1 ml-1">
-                        <span className="text-xs text-gray-500 font-medium">{comment.timestamp}</span>
-                        <button className="text-xs text-gray-500 font-medium hover:text-[#f9622e] transition-colors">Thích</button>
-                        <button className="text-xs text-gray-500 font-medium hover:text-[#f9622e] transition-colors">Phản hồi</button>
+                {isLoadingComments ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-gray-400 gap-2">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#f9622e]" />
+                    <span className="text-sm font-medium">Đang tải bình luận...</span>
+                  </div>
+                ) : sortedComments.length > 0 ? (
+                  sortedComments.map((comment) => (
+                    <div key={comment.id} className="flex gap-3 group">
+                      <Image
+                        src={comment.author.avatar}
+                        alt={comment.author.name}
+                        width={32}
+                        height={32}
+                        className="rounded-full object-cover w-8 h-8 ring-2 ring-gray-50 shrink-0"
+                      />
+                      <div className="flex-1">
+                        <div className="relative inline-block max-w-[90%]">
+                          <div className="bg-gray-100 rounded-2xl rounded-tl-none px-4 py-2">
+                            <h5
+                              onClick={() => router.push(`/profile/${comment.author.id || '#'}`)}
+                              className="text-[13px] font-bold text-gray-900 hover:underline hover:text-[#f9622e] transition-colors duration-150 cursor-pointer"
+                            >
+                              {comment.author.name}
+                            </h5>
+                            <p className="text-sm text-gray-800 mt-0.5 leading-relaxed">{comment.content}</p>
+                          </div>
+
+                          {/* Comment Reaction Badge */}
+                          {comment.likes > 0 && (
+                            <div className="absolute -bottom-2 -right-2 bg-white rounded-full shadow-sm border border-gray-100 px-1.5 py-0.5 flex items-center gap-1 scale-90">
+                              {getCommentReactionIcon(comment.reactionType, "w-3 h-3")}
+                              <span className="text-[10px] font-bold text-gray-500">{comment.likes}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-4 mt-1.5 ml-2">
+                          <span className="text-xs text-gray-500 font-medium">{comment.timestamp}</span>
+
+                          {/* Comment Like/Reaction Button */}
+                          <div className="relative group/comment-react">
+                            <button
+                              onClick={() => handleCommentReaction(comment.id, comment.reactionType || "LIKE")}
+                              className={`text-xs mb-1 font-bold transition-colors hover:underline cursor-pointer ${comment.reactionType ? "text-[#f9622e]" : "text-gray-500 hover:text-gray-700"}`}
+                            >
+                              {getCommentReactionLabel(comment.reactionType)}
+                            </button>
+
+                            {/* Comment Reaction Popup */}
+                            <div className="absolute bottom-full left-0 pb-2 hidden group-hover/comment-react:flex animate-in fade-in slide-in-from-bottom-1 duration-200 z-20">
+                              <div className="bg-white rounded-full shadow-xl border border-gray-100 p-1 gap-0.5 flex scale-90 origin-bottom-left">
+                                {[
+                                  { type: "LIKE", icon: "👍" },
+                                  { type: "LOVE", icon: "❤️" },
+                                  { type: "HAHA", icon: "😆" },
+                                  { type: "WOW", icon: "😮" },
+                                  { type: "SAD", icon: "😢" },
+                                  { type: "ANGRY", icon: "😡" },
+                                ].map((reaction) => (
+                                  <button
+                                    key={reaction.type}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCommentReaction(comment.id, reaction.type);
+                                    }}
+                                    className="p-1.5 text-base hover:scale-125 transition-transform cursor-pointer hover:bg-gray-50 rounded-full"
+                                  >
+                                    {reaction.icon}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          <button className="text-xs font-bold text-gray-500 hover:text-gray-700 hover:underline transition-colors cursor-pointer">
+                            Phản hồi
+                          </button>
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="py-6 text-center text-gray-400">
+                    <p className="text-sm">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )
@@ -641,9 +866,17 @@ export function PostCard({
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); confirmDelete(); }}
-              className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 transition-colors shadow-lg shadow-red-500/30 cursor-pointer"
+              disabled={isDeletingPost}
+              className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 transition-colors shadow-lg shadow-red-500/30 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              Xóa
+              {isDeletingPost ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Đang xóa...
+                </>
+              ) : (
+                "Xóa"
+              )}
             </button>
           </>
         }

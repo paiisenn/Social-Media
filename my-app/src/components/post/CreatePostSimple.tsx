@@ -489,11 +489,10 @@ export function CreatePostSimple({ onCreatePost }: CreatePostSimpleProps) {
 
             {/* Body - Same structure as CreatePost modal */}
             <div
-              className={`flex-1 overflow-y-auto p-4 ${
-                isDragging
+              className={`flex-1 overflow-y-auto p-4 ${isDragging
                   ? "bg-[#fef2ee] border-2 border-dashed border-[#fb923c]"
                   : ""
-              }`}
+                }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
@@ -561,11 +560,10 @@ export function CreatePostSimple({ onCreatePost }: CreatePostSimpleProps) {
                                   setPrivacy(key);
                                   setIsPrivacyOpen(false);
                                 }}
-                                className={`flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 ${
-                                  privacy === key
+                                className={`flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 ${privacy === key
                                     ? "bg-[#fef2ee] text-[#f9622e]"
                                     : "text-gray-700"
-                                }`}
+                                  }`}
                               >
                                 <OptionIcon size={14} />
                                 {privacyOptions[key].label}
@@ -580,11 +578,10 @@ export function CreatePostSimple({ onCreatePost }: CreatePostSimpleProps) {
                 {/* Character Counter */}
                 <div className="ml-auto shrink-0">
                   <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
-                      remainingChars === 0
+                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${remainingChars === 0
                         ? "border-red-500 bg-red-50"
                         : "border-gray-100"
-                    }`}
+                      }`}
                   >
                     <span className={`text-sm font-bold ${getCounterColor()}`}>
                       {remainingChars}
@@ -637,24 +634,22 @@ export function CreatePostSimple({ onCreatePost }: CreatePostSimpleProps) {
               {selectedMediaList.length > 0 && (
                 <div className="relative mt-3">
                   <div
-                    className={`grid gap-1.5 overflow-hidden rounded-xl border border-gray-200 ${
-                      selectedMediaList.length === 1
+                    className={`grid gap-1.5 overflow-hidden rounded-xl border border-gray-200 ${selectedMediaList.length === 1
                         ? "grid-cols-1"
                         : selectedMediaList.length === 2
                           ? "grid-cols-2 h-72"
                           : selectedMediaList.length === 3
                             ? "grid-cols-2 grid-rows-2 h-96"
                             : "grid-cols-2 grid-rows-2 h-96"
-                    }`}
+                      }`}
                   >
                     {selectedMediaList.slice(0, 4).map((media, index) => (
                       <div
                         key={index}
-                        className={`relative bg-black group ${
-                          selectedMediaList.length === 3 && index === 0
+                        className={`relative bg-black group ${selectedMediaList.length === 3 && index === 0
                             ? "row-span-2 h-full"
                             : ""
-                        }`}
+                          }`}
                       >
                         {media.type === "video" ? (
                           <video
@@ -792,11 +787,10 @@ export function CreatePostSimple({ onCreatePost }: CreatePostSimpleProps) {
                                       </span>
                                     </div>
                                     <div
-                                      className={`h-5 w-5 cursor-pointer rounded-full border flex items-center justify-center transition-colors ${
-                                        isTagged
+                                      className={`h-5 w-5 cursor-pointer rounded-full border flex items-center justify-center transition-colors ${isTagged
                                           ? "bg-[#f9622e] border-[#f9622e]"
                                           : "border-gray-300"
-                                      }`}
+                                        }`}
                                     >
                                       {isTagged && (
                                         <Users size={12} className="text-white" />
@@ -911,10 +905,10 @@ export function CreatePostSimple({ onCreatePost }: CreatePostSimpleProps) {
                               .toLowerCase()
                               .includes(searchLocation.toLowerCase()),
                           ).length === 0 && (
-                            <div className="p-4 text-center text-xs text-gray-500">
-                              Không tìm thấy vị trí nào
-                            </div>
-                          )}
+                              <div className="p-4 text-center text-xs text-gray-500">
+                                Không tìm thấy vị trí nào
+                              </div>
+                            )}
                         </div>
                       </div>
                     )}

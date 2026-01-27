@@ -25,6 +25,17 @@ interface Post {
   timestamp: string;
 }
 
+function generateUsername(name: string): string {
+  return "@" + name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "");
+}
+
 export default function HomePage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -65,11 +76,7 @@ export default function HomePage() {
           id: p.author.id,
           name: p.author.name,
           avatar: p.author.avatarUrl || "/userAvatar.png",
-          username:
-            "@" +
-            (p.author.name
-              ? p.author.name.replace(/\s+/g, "").toLowerCase()
-              : "user"),
+          username: generateUsername(p.author.name || "user"),
         },
         content: p.content,
         image:

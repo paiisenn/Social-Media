@@ -41,4 +41,41 @@ export const userAPI = {
             throw error;
         }
     },
+
+    async updateProfile(id: string, data: { name?: string; email?: string; avatarUrl?: string }) {
+        const token = localStorage.getItem("access_token");
+        try {
+            const response = await fetch(`${API_URL}/users/${id}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (response.status === 401) {
+                if (typeof window !== "undefined") {
+                    localStorage.removeItem("access_token");
+                    localStorage.removeItem("user");
+                    window.dispatchEvent(new Event("auth-change"));
+                }
+                throw new Error("Phiên đăng nhập đã hết hạn.");
+            }
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || "Không thể cập nhật thông tin");
+            }
+
+            return response.json();
+        } catch (error) {
+            console.error("updateProfile error:", error);
+            throw error;
+        }
+    },
+
+    async updateStats(id: string) {
+        // Placeholder for stats update if needed
+    }
 };

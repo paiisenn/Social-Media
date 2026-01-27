@@ -405,6 +405,51 @@ export const postAPI = {
         }
     },
 
+    async toggleCommentReaction(commentId: string, reactionType: string) {
+        const token = localStorage.getItem("access_token");
+
+        if (!token || token === "undefined" || token === "null") {
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('user');
+                window.dispatchEvent(new Event('auth-change'));
+            }
+            throw new Error('Vui lòng đăng nhập để thực hiện chức năng này.');
+        }
+
+        try {
+            const requestBody = { type: reactionType };
+
+            const response = await fetch(`${API_URL}/posts/comments/${commentId}/reactions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(requestBody),
+            });
+
+            if (response.status === 401) {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('user');
+                    window.dispatchEvent(new Event('auth-change'));
+                }
+                throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Failed to toggle comment reaction');
+            }
+
+            return response.json();
+        } catch (error) {
+            console.error('toggleCommentReaction error:', error);
+            throw error;
+        }
+    },
+
     async searchByHashtag(hashtag: string, page = 1, limit = 20) {
         const token = localStorage.getItem("access_token");
         try {
@@ -434,5 +479,63 @@ export const postAPI = {
             console.error('searchByHashtag error:', error);
             return { data: [] };
         }
+    },
+
+    // --- Saved Posts (Frontend Persistence logic) ---
+    async getSavedPosts() {
+        if (typeof window === 'undefined') return [];
+
+        const savedIds = JSON.parse(localStorage.getItem('saved_posts_ids') || '[]');
+        if (savedIds.length === 0) return [];
+
+        try {
+            // Fetch multiple posts (using current getPosts as a workaround to find matches)
+            const allPosts = await this.getPosts(1, 100);
+            const postsData = allPosts.data || allPosts;
+
+            return postsData.filter((p: any) => savedIds.includes(p.id));
+        } catch (error) {
+            console.error('getSavedPosts error:', error);
+            return [];
+        }
+    },
+
+    async toggleSavePost(postId: string) {
+        if (typeof window === 'undefined') return false;
+
+        const savedIds = JSON.parse(localStorage.getItem('saved_posts_ids') || '[]');
+        const isSaved = savedIds.includes(postId);
+
+        let newSavedIds;
+        if (isSaved) {
+            newSavedIds = savedIds.filter((id: string) => id !== postId);
+        } else {
+            newSavedIds = [...savedIds, postId];
+        }
+
+        localStorage.setItem('saved_posts_ids', JSON.stringify(newSavedIds));
+        return !isSaved;
+    },
+
+    isPostSaved(postId: string) {
+        if (typeof window === 'undefined') return false;
+        const savedIds = JSON.parse(localStorage.getItem('saved_posts_ids') || '[]');
+        return savedIds.includes(postId);
+    },
+
+    // --- Reaction Persistence (Frontend-only workaround) ---
+    async setLocalReaction(postId: string, reactionType: string | null) {
+        if (typeof window === 'undefined') return;
+        const reactions = JSON.parse(localStorage.getItem('local_reactions') || '{}');
+        reactions[postId] = reactionType || "NONE";
+        localStorage.setItem('local_reactions', JSON.stringify(reactions));
+    },
+
+    getLocalReaction(postId: string): string | null {
+        if (typeof window === 'undefined') return null;
+        const reactions = JSON.parse(localStorage.getItem('local_reactions') || '{}');
+        const val = reactions[postId];
+        if (val === "NONE") return "NONE"; // Return special string to indicate explicit no-reaction
+        return val || null;
     }
 };
