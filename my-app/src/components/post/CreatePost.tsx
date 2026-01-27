@@ -14,8 +14,10 @@ import {
   UserPlus,
   FileDigit as GifIcon,
   Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { useToast } from "@/context/ToastContext";
@@ -158,6 +160,40 @@ const provinces = [
   "Yên Bái",
 ].sort();
 
+// Mock Data cho Stories
+const mockStories = [
+  {
+    id: 1,
+    user: { name: "Nguyễn Thùy Linh", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop" },
+    image: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=800&q=80",
+    time: "2 giờ trước"
+  },
+  {
+    id: 2,
+    user: { name: "Trần Minh Tuấn", avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&h=150&fit=crop" },
+    image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800&q=80",
+    time: "4 giờ trước"
+  },
+  {
+    id: 3,
+    user: { name: "Phạm Hoàng Anh", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop" },
+    image: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800&q=80",
+    time: "5 giờ trước"
+  },
+  {
+    id: 4,
+    user: { name: "Lê Thị Mai", avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&h=150&fit=crop" },
+    image: "https://images.unsplash.com/photo-1492633423870-43d1cd2775eb?w=800&q=80",
+    time: "6 giờ trước"
+  },
+  {
+    id: 5,
+    user: { name: "Đặng Văn Hùng", avatar: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150&h=150&fit=crop" },
+    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80",
+    time: "8 giờ trước"
+  },
+];
+
 export function CreatePost({ onCreatePost }: CreatePostProps) {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
@@ -194,6 +230,58 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
   const locationRef = useRef<HTMLDivElement>(null);
   const tagFriendsRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // --- Story Viewer State & Logic ---
+  const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
+  const [storyProgress, setStoryProgress] = useState(0);
+  const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleCloseStory = useCallback(() => {
+    setActiveStoryIndex(null);
+    setStoryProgress(0);
+    if (storyTimerRef.current) clearInterval(storyTimerRef.current);
+  }, []);
+
+  const handleNextStory = useCallback(() => {
+    if (activeStoryIndex === null) return;
+    if (activeStoryIndex < mockStories.length - 1) {
+      setActiveStoryIndex(prev => (prev !== null ? prev + 1 : null));
+      setStoryProgress(0);
+    } else {
+      handleCloseStory();
+    }
+  }, [activeStoryIndex, handleCloseStory]);
+
+  const handlePrevStory = useCallback(() => {
+    if (activeStoryIndex === null) return;
+    if (activeStoryIndex > 0) {
+      setActiveStoryIndex(prev => (prev !== null ? prev - 1 : null));
+      setStoryProgress(0);
+    } else {
+      // Reset progress if at first story
+      setStoryProgress(0);
+    }
+  }, [activeStoryIndex]);
+
+  // Auto-advance logic
+  useEffect(() => {
+    if (activeStoryIndex !== null) {
+      const duration = 5000; // 5 seconds per story
+      const interval = 50; // Update every 50ms
+      const step = 100 / (duration / interval);
+
+      storyTimerRef.current = setInterval(() => {
+        setStoryProgress(prev => {
+          if (prev >= 100) {
+            handleNextStory();
+            return 0;
+          }
+          return prev + step;
+        });
+      }, interval);
+    }
+    return () => { if (storyTimerRef.current) clearInterval(storyTimerRef.current); };
+  }, [activeStoryIndex, handleNextStory]);
 
   // Xử lý click outside để đóng emoji picker
   useEffect(() => {
@@ -456,7 +544,14 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
         <div className="mt-4 flex gap-3 overflow-x-auto pb-4 cursor-grab active:cursor-grabbing [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#f9622e] [&::-webkit-scrollbar-button]:hidden">
           {/* Tạo tin */}
           <div className="relative h-48 w-32 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-gray-50 transition hover:opacity-90">
-            <div className="h-2/3 bg-linear-to-br from-[#fb923c] to-[#f9622e] opacity-80"></div>
+            <div className="h-2/3 relative w-full">
+              <Image
+                src={user?.avatar || "/userAvatar.png"}
+                alt="Your Story"
+                fill
+                className="object-cover opacity-90"
+              />
+            </div>
             <div className="absolute bottom-0 flex h-1/3 w-full flex-col items-center justify-end pb-2 bg-white">
               <span className="text-xs font-medium text-gray-700">Tạo tin</span>
             </div>
@@ -465,21 +560,25 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
             </div>
           </div>
 
-          {/* Tin của người khác (Mockup) */}
-          {[1, 2, 3, 4].map((i) => (
+          {/* Tin của người khác (Real Mock Data) */}
+          {mockStories.map((story, index) => (
             <div
-              key={i}
+              key={story.id}
+              onClick={() => setActiveStoryIndex(index)}
               className="relative h-48 w-32 shrink-0 cursor-pointer overflow-hidden rounded-xl bg-gray-200 transition hover:opacity-90"
             >
-              <div
-                className={`h-full w-full bg-linear-to-b ${i % 2 === 0
-                  ? "from-purple-500 to-pink-500"
-                  : "from-yellow-400 to-orange-500"
-                  }`}
+              <Image
+                src={story.image}
+                alt={story.user.name}
+                fill
+                className="object-cover transition-transform duration-500 hover:scale-105"
               />
-              <div className="absolute top-3 left-3 h-10 w-10 rounded-full border-4 border-[#f9622e] bg-gray-300" />
-              <div className="absolute bottom-3 left-3 text-xs font-medium text-white drop-shadow-md">
-                Người dùng {i}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
+              <div className="absolute top-3 left-3 h-10 w-10 rounded-full border-4 border-[#f9622e] overflow-hidden">
+                <Image src={story.user.avatar} alt={story.user.name} width={40} height={40} className="object-cover w-full h-full" />
+              </div>
+              <div className="absolute bottom-3 left-3 right-3 text-xs font-bold text-white drop-shadow-md truncate">
+                {story.user.name}
               </div>
             </div>
           ))}
@@ -944,6 +1043,87 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
         onClose={() => setShowAuthModal(false)}
         feature={authFeature}
       />
+
+      {/* Story Viewer Overlay */}
+      {activeStoryIndex !== null && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black">
+          {/* Background Blur Effect */}
+          <div className="absolute inset-0 opacity-30 blur-3xl">
+             <Image 
+               src={mockStories[activeStoryIndex].image} 
+               alt="bg" 
+               fill 
+               className="object-cover" 
+             />
+          </div>
+
+          {/* Main Content Container */}
+          <div className="relative h-full w-full max-w-md bg-black md:h-[90vh] md:rounded-2xl overflow-hidden shadow-2xl">
+            {/* Progress Bar */}
+            <div className="absolute top-0 left-0 right-0 z-20 p-2">
+              <div className="h-1 w-full rounded-full bg-white/30 overflow-hidden">
+                <div
+                  className="h-full bg-white transition-all duration-100 ease-linear"
+                  style={{ width: `${storyProgress}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Header Info */}
+            <div className="absolute top-4 left-0 right-0 z-20 flex items-center justify-between px-4 pt-2">
+              <div className="flex items-center gap-3">
+                <Image 
+                  src={mockStories[activeStoryIndex].user.avatar} 
+                  alt="avatar" 
+                  width={40} 
+                  height={40} 
+                  className="rounded-full border-2 border-[#f9622e]" 
+                />
+                <div>
+                  <p className="text-sm font-bold text-white">{mockStories[activeStoryIndex].user.name}</p>
+                  <p className="text-xs text-white/70">{mockStories[activeStoryIndex].time}</p>
+                </div>
+              </div>
+              <button onClick={handleCloseStory} className="rounded-full cursor-pointer p-2 text-white hover:bg-white/20">
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Navigation Arrows */}
+            {activeStoryIndex > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handlePrevStory(); }}
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-white/20 hover:bg-white/40 text-white transition-colors cursor-pointer"
+              >
+                <ChevronLeft size={32} />
+              </button>
+            )}
+
+            {activeStoryIndex < mockStories.length - 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleNextStory(); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-white/20 hover:bg-white/40 text-white transition-colors cursor-pointer"
+              >
+                <ChevronRight size={32} />
+              </button>
+            )}
+
+            {/* Main Image */}
+            <div className="relative h-full w-full">
+               <Image 
+                 src={mockStories[activeStoryIndex].image} 
+                 alt="story" 
+                 fill 
+                 className="object-contain" 
+                 priority
+               />
+               {/* Navigation Click Zones */}
+               <div className="absolute inset-y-0 left-0 w-1/3 z-10" onClick={handlePrevStory} />
+               <div className="absolute inset-y-0 right-0 w-2/3 z-10" onClick={handleNextStory} />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -9,10 +9,7 @@ import {
     ZoomOut,
     Download,
     RotateCcw,
-    Maximize,
-    Minimize
 } from "lucide-react";
-import Image from "next/image";
 
 interface ImageLightboxProps {
     images: string[];
