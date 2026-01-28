@@ -6,13 +6,15 @@ import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 
 interface MessageInputProps {
   onSendMessage: (message: string, file?: File | null) => void;
+  onTyping?: (isTyping: boolean) => void;
 }
 
 const MAX_HEIGHT = 120;
 
-export function MessageInput({ onSendMessage }: MessageInputProps) {
+export function MessageInput({ onSendMessage, onTyping }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // State cho emoji và file preview
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -26,7 +28,10 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
   // Xử lý click outside để đóng emoji picker
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+      if (
+        emojiPickerRef.current &&
+        !emojiPickerRef.current.contains(event.target as Node)
+      ) {
         setShowEmojiPicker(false);
       }
     }
@@ -137,7 +142,10 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
     <div className="border-t border-gray-100 bg-white px-4 py-3 relative">
       {/* Emoji Picker Popover */}
       {showEmojiPicker && (
-        <div ref={emojiPickerRef} className="absolute bottom-full left-4 mb-2 z-10 shadow-xl rounded-xl">
+        <div
+          ref={emojiPickerRef}
+          className="absolute bottom-full left-4 mb-2 z-10 shadow-xl rounded-xl"
+        >
           <EmojiPicker
             onEmojiClick={onEmojiClick}
             theme={Theme.LIGHT}
@@ -153,10 +161,18 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
         <div className="mb-3 relative inline-block">
           <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50 max-h-35 max-w-50">
             {previewUrl && selectedFile.type.startsWith("image/") && (
-              <img src={previewUrl} alt="Preview" className="h-full w-full object-contain" />
+              <img
+                src={previewUrl}
+                alt="Preview"
+                className="h-full w-full object-contain"
+              />
             )}
             {previewUrl && selectedFile.type.startsWith("video/") && (
-              <video src={previewUrl} controls className="h-full w-full object-contain max-h-40" />
+              <video
+                src={previewUrl}
+                controls
+                className="h-full w-full object-contain max-h-40"
+              />
             )}
             {!previewUrl && (
               <div className="p-3 text-sm text-gray-500 flex items-center gap-2">
@@ -180,8 +196,11 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
         <div className="flex gap-1 relative">
           <button
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-full transition-colors ${showEmojiPicker ? "bg-orange-100 text-[#f9622e]" : "text-[#f9622e] hover:bg-orange-50"
-              }`}
+            className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-full transition-colors ${
+              showEmojiPicker
+                ? "bg-orange-100 text-[#f9622e]"
+                : "text-[#f9622e] hover:bg-orange-50"
+            }`}
           >
             <Smile size={22} />
           </button>
@@ -210,6 +229,21 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
             onChange={(e) => {
               setMessage(e.target.value);
               autoResizeTextarea();
+
+              // Send typing indicator
+              if (onTyping) {
+                onTyping(true);
+
+                // Clear previous timeout
+                if (typingTimeoutRef.current) {
+                  clearTimeout(typingTimeoutRef.current);
+                }
+
+                // Stop typing after 2 seconds of inactivity
+                typingTimeoutRef.current = setTimeout(() => {
+                  onTyping(false);
+                }, 2000);
+              }
             }}
             onKeyDown={handleKeyPress}
             placeholder="Nhập tin nhắn..."
@@ -231,10 +265,11 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
         <div className="flex gap-1">
           <button
             onClick={toggleRecording}
-            className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-full transition-colors ${isRecording
-              ? "bg-red-500 text-white hover:bg-red-600"
-              : "text-[#f9622e] hover:bg-orange-50"
-              }`}
+            className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-full transition-colors ${
+              isRecording
+                ? "bg-red-500 text-white hover:bg-red-600"
+                : "text-[#f9622e] hover:bg-orange-50"
+            }`}
           >
             {isRecording ? <X size={22} /> : <Mic size={22} />}
           </button>
@@ -242,10 +277,11 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
           <button
             onClick={handleSendMessage}
             disabled={!message.trim() && !selectedFile}
-            className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${!message.trim() && !selectedFile
-              ? "text-gray-300 cursor-not-allowed"
-              : "text-[#f9622e] hover:bg-orange-50 cursor-pointer"
-              }`}
+            className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+              !message.trim() && !selectedFile
+                ? "text-gray-300 cursor-not-allowed"
+                : "text-[#f9622e] hover:bg-orange-50 cursor-pointer"
+            }`}
           >
             <Send size={22} />
           </button>
@@ -262,4 +298,3 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
     </div>
   );
 }
-
