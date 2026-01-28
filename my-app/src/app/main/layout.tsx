@@ -4,18 +4,53 @@ import { Navbar } from "@/components/layout/Navbar";
 import { SidebarLeft } from "@/components/layout/SidebarLeft";
 import { SidebarRight } from "@/components/layout/SidebarRight";
 import { useEffect, useState } from "react";
+import { useSocket } from "@/hooks/useSocket";
 
 export default function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // This layout component ensures auth changes are propagated
-  // Users can access this page even without token (guest mode)
   const [mounted, setMounted] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Setup WebSocket connection
+  useSocket(currentUserId);
 
   useEffect(() => {
     setMounted(true);
+
+    // Get current user
+    const user = localStorage.getItem("user");
+    if (user) {
+      try {
+        const userData = JSON.parse(user);
+        setCurrentUserId(userData.id);
+      } catch (e) {
+        console.error("Error parsing user:", e);
+      }
+    }
+
+    // Listen for auth changes
+    const handleAuthChange = () => {
+      const user = localStorage.getItem("user");
+      if (user) {
+        try {
+          const userData = JSON.parse(user);
+          setCurrentUserId(userData.id);
+        } catch (e) {
+          console.error("Error parsing user:", e);
+          setCurrentUserId(null);
+        }
+      } else {
+        setCurrentUserId(null);
+      }
+    };
+
+    window.addEventListener("auth-change", handleAuthChange);
+    return () => {
+      window.removeEventListener("auth-change", handleAuthChange);
+    };
   }, []);
 
   if (!mounted) {
