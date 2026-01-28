@@ -10,6 +10,12 @@ import { friendsAPI } from "@/services/friends.service";
 import { useToast } from "@/context/ToastContext";
 
 // --- Type Definitions ---
+interface Friend {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+}
+
 interface FriendSuggestion {
   id: string;
   name: string;
@@ -30,12 +36,16 @@ export function SidebarRight() {
   const [activeTab, setActiveTab] = useState("primary");
   const [searchQuery, setSearchQuery] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingFriends, setLoadingFriends] = useState(false);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [suggestedFriends, setSuggestedFriends] = useState<FriendSuggestion[]>([]);
+  const [suggestedFriends, setSuggestedFriends] = useState<FriendSuggestion[]>(
+    [],
+  );
 
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -45,18 +55,34 @@ export function SidebarRight() {
   const requestsTabRef = useRef<HTMLButtonElement>(null);
   const underlineRef = useRef<HTMLDivElement>(null);
 
-  // Effect để tải conversations & requests khi component mount và user đã authenticated
+  // Effect để tải conversations, friends & requests khi component mount và user đã authenticated
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       loadConversations();
+      loadFriends();
       loadSuggestedFriends();
       loadFriendRequests();
     }
   }, [isAuthenticated, authLoading]);
 
+  // Listen for friends-updated event
+  useEffect(() => {
+    const handleFriendsUpdated = () => {
+      if (isAuthenticated) {
+        loadFriends();
+        loadConversations();
+      }
+    };
+
+    window.addEventListener("friends-updated", handleFriendsUpdated);
+    return () => {
+      window.removeEventListener("friends-updated", handleFriendsUpdated);
+    };
+  }, [isAuthenticated]);
+
   // Effect để cập nhật vị trí thanh trượt khi tab thay đổi
   useEffect(() => {
-    const activeRef = activeTab === 'primary' ? primaryTabRef : requestsTabRef;
+    const activeRef = activeTab === "primary" ? primaryTabRef : requestsTabRef;
     if (activeRef.current && underlineRef.current) {
       underlineRef.current.style.left = `${activeRef.current.offsetLeft}px`;
       underlineRef.current.style.width = `${activeRef.current.offsetWidth}px`;
@@ -70,10 +96,22 @@ export function SidebarRight() {
       const data = await messagesAPI.getChatList();
       setConversations(Array.isArray(data) ? data : data?.data || []);
     } catch (err) {
-      console.error('Failed to load conversations:', err);
-      setError('Không thể tải danh sách tin nhắn');
+      console.error("Failed to load conversations:", err);
+      setError("Không thể tải danh sách tin nhắn");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadFriends = async () => {
+    try {
+      setLoadingFriends(true);
+      const data = await friendsAPI.getFriends();
+      setFriends(Array.isArray(data) ? data : data?.data || []);
+    } catch (err) {
+      console.error("Failed to load friends:", err);
+    } finally {
+      setLoadingFriends(false);
     }
   };
 
@@ -87,7 +125,7 @@ export function SidebarRight() {
         : [];
       setSuggestedFriends(filteredData);
     } catch (err) {
-      console.error('Failed to load suggested friends:', err);
+      console.error("Failed to load suggested friends:", err);
     } finally {
       setLoadingSuggestions(false);
     }
@@ -99,7 +137,7 @@ export function SidebarRight() {
       toast("Đã gửi yêu cầu kết bạn!", "success");
       setSuggestedFriends((prev) => prev.filter((f) => f.id !== friendId));
     } catch (err) {
-      console.error('Failed to add friend:', err);
+      console.error("Failed to add friend:", err);
       toast("Không thể gửi yêu cầu kết bạn", "error");
     }
   };
@@ -114,13 +152,15 @@ export function SidebarRight() {
       const data = await friendsAPI.getFriendRequests();
       // Loại bỏ các yêu cầu trùng lặp từ cùng một người (nếu có)
       const uniqueRequests = Array.isArray(data)
-        ? (data as FriendRequest[]).filter((req, index, self) =>
-          index === self.findIndex((r) => r.requesterId === req.requesterId)
-        )
+        ? (data as FriendRequest[]).filter(
+            (req, index, self) =>
+              index ===
+              self.findIndex((r) => r.requesterId === req.requesterId),
+          )
         : [];
       setFriendRequests(uniqueRequests);
     } catch (err) {
-      console.error('Failed to load friend requests:', err);
+      console.error("Failed to load friend requests:", err);
     } finally {
       setLoadingRequests(false);
     }
@@ -130,10 +170,12 @@ export function SidebarRight() {
     try {
       await friendsAPI.acceptFriendRequest(requesterId);
       toast("Đã chấp nhận lời mời kết bạn!", "success");
-      setFriendRequests((prev) => prev.filter((r) => r.requesterId !== requesterId));
+      setFriendRequests((prev) =>
+        prev.filter((r) => r.requesterId !== requesterId),
+      );
       loadConversations(); // Refresh conversations as they might have started a chat or just to update list
     } catch (err) {
-      console.error('Failed to accept request:', err);
+      console.error("Failed to accept request:", err);
       toast("Không thể chấp nhận yêu cầu", "error");
     }
   };
@@ -142,18 +184,22 @@ export function SidebarRight() {
     try {
       await friendsAPI.rejectFriendRequest(requesterId);
       toast("Đã từ chối lời mời kết bạn", "success");
-      setFriendRequests((prev) => prev.filter((r) => r.requesterId !== requesterId));
+      setFriendRequests((prev) =>
+        prev.filter((r) => r.requesterId !== requesterId),
+      );
     } catch (err) {
-      console.error('Failed to reject request:', err);
+      console.error("Failed to reject request:", err);
       toast("Không thể từ chối yêu cầu", "error");
     }
   };
 
   const filteredConversations = conversations.filter((conv) =>
-    conv.partner.name.toLowerCase().includes(searchQuery.toLowerCase())
+    conv.partner.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const unreadCount = conversations.filter(conv => conv.unreadCount > 0).length;
+  const unreadCount = conversations.filter(
+    (conv) => conv.unreadCount > 0,
+  ).length;
   const requestCount = friendRequests.length;
 
   return (
@@ -194,20 +240,22 @@ export function SidebarRight() {
                   <button
                     ref={primaryTabRef}
                     onClick={() => setActiveTab("primary")}
-                    className={`pb-2 text-sm font-semibold transition-colors duration-300 ${activeTab === "primary"
-                      ? "text-[#f9622e]"
-                      : "text-gray-500 hover:text-gray-800 cursor-pointer"
-                      }`}
+                    className={`pb-2 text-sm font-semibold transition-colors duration-300 ${
+                      activeTab === "primary"
+                        ? "text-[#f9622e]"
+                        : "text-gray-500 hover:text-gray-800 cursor-pointer"
+                    }`}
                   >
                     Chính
                   </button>
                   <button
                     ref={requestsTabRef}
                     onClick={() => setActiveTab("requests")}
-                    className={`relative pb-2 text-sm font-semibold transition-colors duration-300 group ${activeTab === "requests"
-                      ? "text-[#f9622e]"
-                      : "text-gray-500 hover:text-gray-800 cursor-pointer"
-                      }`}
+                    className={`relative pb-2 text-sm font-semibold transition-colors duration-300 group ${
+                      activeTab === "requests"
+                        ? "text-[#f9622e]"
+                        : "text-gray-500 hover:text-gray-800 cursor-pointer"
+                    }`}
                   >
                     Yêu cầu
                     {requestCount > 0 && (
@@ -217,13 +265,16 @@ export function SidebarRight() {
                     )}
                   </button>
                   {/* Thanh trượt gạch chân động */}
-                  <div ref={underlineRef} className="absolute -bottom-px h-0.5 bg-[#f9622e] transition-all duration-300 ease-in-out" />
+                  <div
+                    ref={underlineRef}
+                    className="absolute -bottom-px h-0.5 bg-[#f9622e] transition-all duration-300 ease-in-out"
+                  />
                 </div>
               </div>
 
               {/* Nội dung danh sách */}
               <div className="mt-2">
-                {activeTab === 'primary' ? (
+                {activeTab === "primary" ? (
                   loading ? (
                     <div className="py-4 text-center text-sm text-gray-500">
                       Đang tải tin nhắn...
@@ -232,17 +283,20 @@ export function SidebarRight() {
                     <div className="py-4 text-center text-sm text-red-500">
                       {error}
                     </div>
-                  ) : filteredConversations.length > 0 ? (
+                  ) : filteredConversations.length > 0 || friends.length > 0 ? (
                     <div className="max-h-60 overflow-y-auto custom-scrollbar pr-1">
                       <ul className="space-y-1">
+                        {/* Hiển thị conversations trước */}
                         {filteredConversations.map((conv) => (
-                          <li key={conv.partner.id}>
+                          <li key={`conv-${conv.partner.id}`}>
                             <Link
-                              href={`/messages?userId=${conv.partner.id}&name=${encodeURIComponent(conv.partner.name)}&avatar=${encodeURIComponent(conv.partner.avatarUrl || '/userAvatar.png')}`}
+                              href={`/main/messages?userId=${conv.partner.id}&name=${encodeURIComponent(conv.partner.name)}&avatar=${encodeURIComponent(conv.partner.avatarUrl || "/userAvatar.png")}`}
                               className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-100"
                             >
                               <Image
-                                src={conv.partner.avatarUrl || '/userAvatar.png'}
+                                src={
+                                  conv.partner.avatarUrl || "/userAvatar.png"
+                                }
                                 alt={conv.partner.name}
                                 width={40}
                                 height={40}
@@ -252,7 +306,9 @@ export function SidebarRight() {
                                 <p className="truncate text-sm font-semibold text-gray-800">
                                   {conv.partner.name}
                                 </p>
-                                <p className={`truncate text-xs ${conv.unreadCount > 0 ? 'font-bold text-gray-800' : 'text-gray-500'}`}>
+                                <p
+                                  className={`truncate text-xs ${conv.unreadCount > 0 ? "font-bold text-gray-800" : "text-gray-500"}`}
+                                >
                                   {conv.lastMessage.content}
                                 </p>
                               </div>
@@ -262,62 +318,99 @@ export function SidebarRight() {
                             </Link>
                           </li>
                         ))}
+
+                        {/* Hiển thị bạn bè chưa có conversation */}
+                        {friends
+                          .filter(
+                            (friend) =>
+                              !filteredConversations.some(
+                                (conv) => conv.partner.id === friend.id,
+                              ),
+                          )
+                          .map((friend) => (
+                            <li key={`friend-${friend.id}`}>
+                              <Link
+                                href={`/main/messages?userId=${friend.id}&name=${encodeURIComponent(friend.name)}&avatar=${encodeURIComponent(friend.avatarUrl || "/userAvatar.png")}`}
+                                className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-100"
+                              >
+                                <Image
+                                  src={friend.avatarUrl || "/userAvatar.png"}
+                                  alt={friend.name}
+                                  width={40}
+                                  height={40}
+                                  className="h-10 w-10 rounded-full object-cover"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-semibold text-gray-800">
+                                    {friend.name}
+                                  </p>
+                                  <p className="truncate text-xs text-gray-500">
+                                    1 bạn chung
+                                  </p>
+                                </div>
+                              </Link>
+                            </li>
+                          ))}
                       </ul>
                     </div>
                   ) : (
                     <div className="py-4 text-center text-sm text-gray-500">
-                      Không tìm thấy tin nhắn nào
+                      {loadingFriends
+                        ? "Đang tải bạn bè..."
+                        : "Chưa có bạn bè nào"}
                     </div>
                   )
-                ) : (
-                  // Requests Tab Content
-                  loadingRequests ? (
-                    <div className="py-4 text-center text-sm text-gray-500">
-                      Đang tải yêu cầu...
-                    </div>
-                  ) : friendRequests.length > 0 ? (
-                    <div className="max-h-60 overflow-y-auto custom-scrollbar pr-1">
-                      <ul className="space-y-2">
-                        {friendRequests.map((req) => (
-                          <li key={req.id} className="flex items-center gap-3">
-                            <Image
-                              src={req.requester.avatarUrl || '/userAvatar.png'}
-                              alt={req.requester.name}
-                              width={40}
-                              height={40}
-                              className="h-10 w-10 rounded-full object-cover"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-semibold text-gray-800">
-                                {req.requester.name}
-                              </p>
-                              <p className="truncate text-[11px] text-gray-500">
-                                Gửi lời mời kết bạn
-                              </p>
-                              <div className="mt-1.5 flex gap-2">
-                                <button
-                                  onClick={() => handleAcceptRequest(req.requesterId)}
-                                  className="rounded-md bg-[#f9622e] cursor-pointer px-3 py-1 text-[11px] font-bold text-white hover:bg-[#d84e1e] transition-colors"
-                                >
-                                  Chấp nhận
-                                </button>
-                                <button
-                                  onClick={() => handleRejectRequest(req.requesterId)}
-                                  className="rounded-md bg-gray-200 cursor-pointer px-3 py-1 text-[11px] font-bold text-gray-700 hover:bg-gray-300 transition-colors"
-                                >
-                                  Xóa
-                                </button>
-                              </div>
+                ) : // Requests Tab Content
+                loadingRequests ? (
+                  <div className="py-4 text-center text-sm text-gray-500">
+                    Đang tải yêu cầu...
+                  </div>
+                ) : friendRequests.length > 0 ? (
+                  <div className="max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                    <ul className="space-y-2">
+                      {friendRequests.map((req) => (
+                        <li key={req.id} className="flex items-center gap-3">
+                          <Image
+                            src={req.requester.avatarUrl || "/userAvatar.png"}
+                            alt={req.requester.name}
+                            width={40}
+                            height={40}
+                            className="h-10 w-10 rounded-full object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-gray-800">
+                              {req.requester.name}
+                            </p>
+                            <p className="truncate text-[11px] text-gray-500">
+                              Gửi lời mời kết bạn
+                            </p>
+                            <div className="mt-1.5 flex gap-2">
+                              <button
+                                onClick={() =>
+                                  handleAcceptRequest(req.requesterId)
+                                }
+                                className="rounded-md bg-[#f9622e] cursor-pointer px-3 py-1 text-[11px] font-bold text-white hover:bg-[#d84e1e] transition-colors"
+                              >
+                                Chấp nhận
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleRejectRequest(req.requesterId)
+                                }
+                                className="rounded-md bg-gray-200 cursor-pointer px-3 py-1 text-[11px] font-bold text-gray-700 hover:bg-gray-300 transition-colors"
+                              >
+                                Xóa
+                              </button>
                             </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : (
-                    <div className="py-4 text-center text-sm text-gray-500">
-                      Không có yêu cầu nào gửi cho bạn
-                    </div>
-                  )
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="py-4 text-center text-sm text-gray-500">
+                    Không có yêu cầu nào gửi cho bạn
+                  </div>
                 )}
               </div>
             </div>
@@ -328,9 +421,12 @@ export function SidebarRight() {
                   <MessageCircleMore className="h-8 w-8 text-[#f9622e]" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-800">Bạn chưa đăng nhập?</h3>
+                  <h3 className="font-bold text-gray-800">
+                    Bạn chưa đăng nhập?
+                  </h3>
                   <p className="text-xs text-gray-500 mt-1 px-2">
-                    Đăng nhập để sử dụng tính năng trò chuyện và nhắn tin với bạn bè!
+                    Đăng nhập để sử dụng tính năng trò chuyện và nhắn tin với
+                    bạn bè!
                   </p>
                 </div>
                 <Link
@@ -406,7 +502,8 @@ export function SidebarRight() {
                 <div>
                   <h3 className="font-bold text-gray-800">Tìm bạn mới?</h3>
                   <p className="text-xs text-gray-500 mt-1 px-2">
-                    Đăng nhập để khám phá những người mới và mở rộng mạng lưới kết nối của bạn!
+                    Đăng nhập để khám phá những người mới và mở rộng mạng lưới
+                    kết nối của bạn!
                   </p>
                 </div>
                 <Link
