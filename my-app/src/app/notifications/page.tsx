@@ -11,12 +11,19 @@ import {
   CheckCheck,
   Clock,
   Filter,
+  Check,
+  X,
 } from "lucide-react";
 import MainLayout from "@/app/main/layout";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { notificationsAPI, Notification } from "@/services/notifications.service";
+import {
+  notificationsAPI,
+  Notification,
+} from "@/services/notifications.service";
+import { friendsAPI } from "@/services/friends.service";
+import { socketService } from "@/services/socket.service";
 
 function getNotificationIcon(type: string) {
   switch (type) {
@@ -112,13 +119,15 @@ export default function NotificationsPage() {
   }, [loading, isAuthenticated, router]);
 
   const filtered =
-    filter === "unread" ? notifications.filter((n) => !n.isRead) : notifications;
+    filter === "unread"
+      ? notifications.filter((n) => !n.isRead)
+      : notifications;
 
   const handleMarkAsRead = async (id: string) => {
     try {
       await notificationsAPI.markAsRead(id);
       setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
     } catch (err) {
       console.error("Error marking as read:", err);
@@ -158,139 +167,142 @@ export default function NotificationsPage() {
             <p className="text-red-600">{error}</p>
           </div>
         </div>
-      ) : (<div className="mx-auto max-w-4xl pb-2">
-        <div className="mb-4 rounded-2xl bg-linear-to-r from-orange-50 to-white p-6 shadow-sm border border-orange-100/50">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2.5 bg-[#f9622e] rounded-xl shadow-lg shadow-[#f9622e]/20">
-                  <Bell className="h-6 w-6 text-white" />
+      ) : (
+        <div className="mx-auto max-w-4xl pb-2">
+          <div className="mb-4 rounded-2xl bg-linear-to-r from-orange-50 to-white p-6 shadow-sm border border-orange-100/50">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2.5 bg-[#f9622e] rounded-xl shadow-lg shadow-[#f9622e]/20">
+                    <Bell className="h-6 w-6 text-white" />
+                  </div>
+                  <h1 className="text-xl font-extrabold text-[#f9622e] uppercase tracking-wider">
+                    Thông báo
+                  </h1>
                 </div>
-                <h1 className="text-xl font-extrabold text-[#f9622e] uppercase tracking-wider">
-                  Thông báo
-                </h1>
+                <p className="text-gray-500 font-medium ml-1">
+                  Cập nhật hoạt động mới nhất của bạn
+                </p>
               </div>
-              <p className="text-gray-500 font-medium ml-1">
-                Cập nhật hoạt động mới nhất của bạn
-              </p>
-            </div>
 
-            {notifications.some((n) => !n.isRead) && (
+              {notifications.some((n) => !n.isRead) && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-100/50 text-[#f9622e] hover:bg-[#f9622e] hover:text-white font-medium transition-all cursor-pointer group"
+                >
+                  <CheckCheck className="h-4 w-4" />
+                  <span className="text-sm">Đánh dấu tất cả đã đọc</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide">
+            <div className="flex items-center gap-2 p-1 bg-gray-100/80 rounded-xl">
               <button
-                onClick={handleMarkAllAsRead}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-100/50 text-[#f9622e] hover:bg-[#f9622e] hover:text-white font-medium transition-all cursor-pointer group"
+                onClick={() => setFilter("all")}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer ${
+                  filter === "all"
+                    ? "bg-white text-[#f9622e] shadow-md"
+                    : "text-gray-500 hover:text-gray-900"
+                }`}
               >
-                <CheckCheck className="h-4 w-4" />
-                <span className="text-sm">Đánh dấu tất cả đã đọc</span>
+                Tất cả
               </button>
+              <button
+                onClick={() => setFilter("unread")}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer ${
+                  filter === "unread"
+                    ? "bg-white text-[#f9622e] shadow-md"
+                    : "text-gray-500 hover:text-gray-900"
+                }`}
+              >
+                <Filter className="w-4 h-4" />
+                Chưa đọc
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-4 pb-2">
+            {filtered.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-3xl bg-white py-12 px-10 text-center shadow-sm border border-gray-100 animate-in fade-in zoom-in duration-500">
+                <div className="h-24 w-24 bg-orange-100/80 rounded-full flex items-center justify-center mb-6 ring-8 ring-orange-50/30">
+                  <Bell className="h-12 w-12 text-[#f9622e]/80" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Không có thông báo nào
+                </h3>
+                <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
+                  Hiện tại bạn chưa có thông báo mới nào. Hãy kết nối thêm với
+                  mọi người để nhận được nhiều tương tác hơn nhé!
+                </p>
+              </div>
+            ) : (
+              filtered.map((notif, index) => (
+                <div
+                  key={notif.id}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                  onClick={() => handleMarkAsRead(notif.id)}
+                  className={`group relative flex gap-4 rounded-2xl p-4 transition-all duration-300 cursor-pointer border hover:shadow-lg hover:-translate-y-1 animate-in slide-in-from-bottom-2 fade-in ${
+                    notif.isRead
+                      ? "bg-white border-gray-100 hover:border-orange-200 shadow-sm"
+                      : "bg-orange-50 border-orange-100 hover:border-orange-400 shadow-md shadow-orange-100/50"
+                  }`}
+                >
+                  <div className="relative shrink-0 self-start mt-1">
+                    <Image
+                      src={notif.actor?.avatarUrl || "/userAvatar.png"}
+                      alt={notif.actor?.name || "User"}
+                      width={60}
+                      height={60}
+                      className="h-12 w-12 rounded-full object-cover ring-4 ring-white shadow-md transition-transform group-hover:scale-105"
+                    />
+                    <div className="absolute -bottom-2 -right-2 transform scale-90 group-hover:scale-105 transition-transform">
+                      {getNotificationIcon(notif.type)}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-w-0 pr-10">
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-[15px] text-gray-800 leading-relaxed">
+                        <span className="font-bold text-gray-900 duration-200 group-hover:text-[#f9622e] transition-colors text-base">
+                          {notif.actor?.name || "User"}
+                        </span>{" "}
+                        <span className="text-gray-600">{notif.message}</span>
+                      </p>
+
+                      {notif.content && (
+                        <div className="rounded-xl bg-gray-50/80 p-3 text-sm text-gray-600 italic border-l-4 border-[#f9622e]/50 group-hover:border-[#f9622e] group-hover:bg-orange-50/30 transition-all shadow-inner">
+                          &quot;{notif.content}&quot;
+                        </div>
+                      )}
+
+                      <p className="flex items-center gap-1.5 text-xs text-gray-400 font-bold uppercase tracking-wide pt-1">
+                        <Clock className="h-3 w-3" />
+                        {formatNotificationDate(notif.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {!notif.isRead && (
+                    <div className="absolute top-3 right-3 h-3 w-3 rounded-full bg-[#f9622e] ring-4 ring-orange-100 shadow-sm animate-pulse" />
+                  )}
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(notif.id);
+                    }}
+                    className="absolute cursor-pointer bottom-5 right-5 p-2 rounded-xl text-gray-300 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 transition-all transform hover:scale-110 shadow-sm border border-transparent hover:border-red-100"
+                    title="Xóa thông báo"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))
             )}
           </div>
         </div>
-
-        <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide">
-          <div className="flex items-center gap-2 p-1 bg-gray-100/80 rounded-xl">
-            <button
-              onClick={() => setFilter("all")}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer ${filter === "all"
-                ? "bg-white text-[#f9622e] shadow-md"
-                : "text-gray-500 hover:text-gray-900"
-                }`}
-            >
-              Tất cả
-            </button>
-            <button
-              onClick={() => setFilter("unread")}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer ${filter === "unread"
-                ? "bg-white text-[#f9622e] shadow-md"
-                : "text-gray-500 hover:text-gray-900"
-                }`}
-            >
-              <Filter className="w-4 h-4" />
-              Chưa đọc
-            </button>
-          </div>
-
-        </div>
-
-        <div className="space-y-4 pb-2">
-          {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-3xl bg-white py-12 px-10 text-center shadow-sm border border-gray-100 animate-in fade-in zoom-in duration-500">
-              <div className="h-24 w-24 bg-orange-100/80 rounded-full flex items-center justify-center mb-6 ring-8 ring-orange-50/30">
-                <Bell className="h-12 w-12 text-[#f9622e]/80" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Không có thông báo nào
-              </h3>
-              <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
-                Hiện tại bạn chưa có thông báo mới nào. Hãy kết nối thêm với mọi
-                người để nhận được nhiều tương tác hơn nhé!
-              </p>
-            </div>
-          ) : (
-            filtered.map((notif, index) => (
-              <div
-                key={notif.id}
-                style={{ animationDelay: `${index * 50}ms` }}
-                onClick={() => handleMarkAsRead(notif.id)}
-                className={`group relative flex gap-4 rounded-2xl p-4 transition-all duration-300 cursor-pointer border hover:shadow-lg hover:-translate-y-1 animate-in slide-in-from-bottom-2 fade-in ${notif.isRead
-                  ? "bg-white border-gray-100 hover:border-orange-200 shadow-sm"
-                  : "bg-orange-50 border-orange-100 hover:border-orange-400 shadow-md shadow-orange-100/50"
-                  }`}
-              >
-                <div className="relative shrink-0 self-start mt-1">
-                  <Image
-                    src={notif.actor?.avatarUrl || "/userAvatar.png"}
-                    alt={notif.actor?.name || "User"}
-                    width={60}
-                    height={60}
-                    className="h-12 w-12 rounded-full object-cover ring-4 ring-white shadow-md transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute -bottom-2 -right-2 transform scale-90 group-hover:scale-105 transition-transform">
-                    {getNotificationIcon(notif.type)}
-                  </div>
-                </div>
-
-                <div className="flex-1 min-w-0 pr-10">
-                  <div className="flex flex-col gap-1.5">
-                    <p className="text-[15px] text-gray-800 leading-relaxed">
-                      <span className="font-bold text-gray-900 duration-200 group-hover:text-[#f9622e] transition-colors text-base">
-                        {notif.actor?.name || "User"}
-                      </span>{" "}
-                      <span className="text-gray-600">{notif.message}</span>
-                    </p>
-
-                    {notif.content && (
-                      <div className="rounded-xl bg-gray-50/80 p-3 text-sm text-gray-600 italic border-l-4 border-[#f9622e]/50 group-hover:border-[#f9622e] group-hover:bg-orange-50/30 transition-all shadow-inner">
-                        &quot;{notif.content}&quot;
-                      </div>
-                    )}
-
-                    <p className="flex items-center gap-1.5 text-xs text-gray-400 font-bold uppercase tracking-wide pt-1">
-                      <Clock className="h-3 w-3" />
-                      {formatNotificationDate(notif.createdAt)}
-                    </p>
-                  </div>
-                </div>
-
-                {!notif.isRead && (
-                  <div className="absolute top-3 right-3 h-3 w-3 rounded-full bg-[#f9622e] ring-4 ring-orange-100 shadow-sm animate-pulse" />
-                )}
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(notif.id);
-                  }}
-                  className="absolute cursor-pointer bottom-5 right-5 p-2 rounded-xl text-gray-300 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 transition-all transform hover:scale-110 shadow-sm border border-transparent hover:border-red-100"
-                  title="Xóa thông báo"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
       )}
     </MainLayout>
   );

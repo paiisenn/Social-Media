@@ -52,6 +52,38 @@ export const friendsAPI = {
     }
   },
 
+  async getUserFriends(userId: string) {
+    const token = localStorage.getItem("access_token");
+    try {
+      const response = await fetch(`${API_URL}/friends/user/${userId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 401) {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("user");
+          window.dispatchEvent(new Event("auth-change"));
+        }
+        return [];
+      }
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch user friends");
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error("getUserFriends error:", error);
+      throw error;
+    }
+  },
+
   async getSuggestedFriends(limit: number = 10) {
     const token = localStorage.getItem("access_token");
     try {
@@ -63,7 +95,7 @@ export const friendsAPI = {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (response.status === 401) {
@@ -282,7 +314,7 @@ export const friendsAPI = {
   async searchUsers(query: string, limit: number = 20) {
     const token = localStorage.getItem("access_token");
     if (!token) return [];
-    
+
     try {
       const response = await fetch(
         `${API_URL}/friends/search?q=${encodeURIComponent(query)}&limit=${limit}`,
@@ -292,7 +324,7 @@ export const friendsAPI = {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (response.status === 401) {

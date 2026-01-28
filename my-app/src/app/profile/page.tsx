@@ -35,14 +35,17 @@ import { useUserStats, triggerStatsUpdate } from "@/hooks/useUserStats";
 
 // Helper function to generate username from name
 function generateUsername(name: string): string {
-  return "@" + name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D")
-    .toLowerCase()
-    .replace(/\s+/g, "_")
-    .replace(/[^a-z0-9_]/g, "");
+  return (
+    "@" +
+    name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D")
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_]/g, "")
+  );
 }
 
 interface Post {
@@ -102,7 +105,6 @@ export default function ProfilePage() {
     "posts" | "friends" | "photos" | "videos"
   >("posts");
   const { stats, refresh: refreshStats } = useUserStats();
-  const [isFollowing, setIsFollowing] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -156,7 +158,10 @@ export default function ProfilePage() {
 
   // Refs và state cho hiệu ứng underline của tabs
   const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
-  const [tabUnderlineStyle, setTabUnderlineStyle] = useState({ left: 0, width: 0 });
+  const [tabUnderlineStyle, setTabUnderlineStyle] = useState({
+    left: 0,
+    width: 0,
+  });
 
   const { toast } = useToast();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -174,26 +179,15 @@ export default function ProfilePage() {
 
   const handleCopyLink = () => {
     const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
-      toast("Đã sao chép liên kết trang cá nhân!", "success");
-      setIsMenuOpen(false);
-    }).catch(() => {
-      toast("Không thể sao chép liên kết.", "error");
-    });
-  };
-
-  const handleReportUser = () => {
-    setIsMenuOpen(false);
-    alert("Đã gửi báo cáo người dùng. Chúng tôi sẽ xem xét.");
-  };
-
-  const handleBlockUser = () => {
-    setIsMenuOpen(false);
-    alert(`Đã chặn người dùng ${userName}.`);
-  };
-
-  const handleFollow = () => {
-    setIsFollowing(!isFollowing);
+    navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        toast("Đã sao chép liên kết trang cá nhân!", "success");
+        setIsMenuOpen(false);
+      })
+      .catch(() => {
+        toast("Không thể sao chép liên kết.", "error");
+      });
   };
 
   const handleEditCoverClick = () => {
@@ -229,7 +223,7 @@ export default function ProfilePage() {
         updateData.name = editedName;
       }
 
-      if (avatar !== avatarUrl && !avatar.startsWith('blob:')) {
+      if (avatar !== avatarUrl && !avatar.startsWith("blob:")) {
         updateData.avatarUrl = avatar;
       }
 
@@ -319,7 +313,7 @@ export default function ProfilePage() {
       // Handle both paginated and non-paginated responses
       const postsData = res.data || res;
       if (!Array.isArray(postsData)) {
-        throw new Error('Invalid posts data format');
+        throw new Error("Invalid posts data format");
       }
 
       const mappedPosts = postsData.map((p: PostData) => ({
@@ -328,22 +322,33 @@ export default function ProfilePage() {
           id: p.author.id,
           name: p.author.name,
           avatar: p.author.avatarUrl || "/userAvatar.png",
-          username: generateUsername(p.author.name || "user")
+          username: generateUsername(p.author.name || "user"),
         },
         content: p.content,
         mediaUrls: p.mediaUrls || [],
-        image: p.mediaUrls && p.mediaUrls.length > 0 && !p.mediaUrls[0].endsWith(".mp4") ? p.mediaUrls[0] : undefined,
-        video: p.mediaUrls && p.mediaUrls.length > 0 && p.mediaUrls[0].endsWith(".mp4") ? p.mediaUrls[0] : undefined,
+        image:
+          p.mediaUrls &&
+          p.mediaUrls.length > 0 &&
+          !p.mediaUrls[0].endsWith(".mp4")
+            ? p.mediaUrls[0]
+            : undefined,
+        video:
+          p.mediaUrls &&
+          p.mediaUrls.length > 0 &&
+          p.mediaUrls[0].endsWith(".mp4")
+            ? p.mediaUrls[0]
+            : undefined,
         likes: p._count?.reactions || 0,
         comments: p._count?.comments || 0,
         shares: 0,
-        timestamp: new Date(p.createdAt).toLocaleString('vi-VN'),
+        timestamp: new Date(p.createdAt).toLocaleString("vi-VN"),
         initialIsLiked: p.isLiked || false,
       }));
       setPosts(mappedPosts);
     } catch (error) {
       console.error("Failed to fetch user posts", error);
-      const errorMsg = error instanceof Error ? error.message : "Không thể tải bài viết";
+      const errorMsg =
+        error instanceof Error ? error.message : "Không thể tải bài viết";
       toast(errorMsg, "error");
     } finally {
       setIsLoadingPosts(false);
@@ -386,10 +391,10 @@ export default function ProfilePage() {
       await postAPI.createPost({
         content: postData.content,
         privacy: postData.privacy as "public" | "friends" | "private",
-        mediaUrls: postData.media.map(m => m.url), // Send media URLs
+        mediaUrls: postData.media.map((m) => m.url), // Send media URLs
         feeling: postData.feeling,
         location: postData.location,
-        taggedUserIds: postData.taggedUserIds
+        taggedUserIds: postData.taggedUserIds,
       });
 
       toast("Đăng bài viết thành công!", "success");
@@ -397,7 +402,8 @@ export default function ProfilePage() {
       await fetchPosts();
       triggerStatsUpdate();
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Đăng bài viết thất bại";
+      const errorMessage =
+        error instanceof Error ? error.message : "Đăng bài viết thất bại";
       toast(errorMessage, "error");
       throw error;
     }
@@ -412,7 +418,8 @@ export default function ProfilePage() {
       await fetchPosts();
       triggerStatsUpdate();
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Xóa bài viết thất bại";
+      const errorMessage =
+        error instanceof Error ? error.message : "Xóa bài viết thất bại";
       toast(errorMessage, "error");
       console.error("Failed to delete post:", error);
     }
@@ -451,8 +458,8 @@ export default function ProfilePage() {
   const { photos, videos } = useMemo(() => {
     const pUrls: string[] = [];
     const vUrls: string[] = [];
-    posts.forEach(post => {
-      (post.mediaUrls || []).forEach(url => {
+    posts.forEach((post) => {
+      (post.mediaUrls || []).forEach((url) => {
         if (url.endsWith(".mp4")) {
           vUrls.push(url);
         } else {
@@ -481,7 +488,10 @@ export default function ProfilePage() {
     const activeTabIndex = tabs.findIndex((tab) => tab.key === activeTab);
     const currentTab = tabsRef.current[activeTabIndex];
     if (currentTab) {
-      setTabUnderlineStyle({ left: currentTab.offsetLeft, width: currentTab.offsetWidth });
+      setTabUnderlineStyle({
+        left: currentTab.offsetLeft,
+        width: currentTab.offsetWidth,
+      });
     }
   }, [activeTab, tabs]);
 
@@ -571,7 +581,9 @@ export default function ProfilePage() {
                   {isEditing ? (
                     <div className="mb-3 flex flex-col gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Họ và tên
+                        </label>
                         <input
                           type="text"
                           value={editedName}
@@ -581,7 +593,9 @@ export default function ProfilePage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Tên hiển thị</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Tên hiển thị
+                        </label>
                         <input
                           type="text"
                           value={editedUsername}
@@ -596,9 +610,7 @@ export default function ProfilePage() {
                       <h1 className="text-3xl font-bold text-gray-900">
                         {userName}
                       </h1>
-                      <p className="text-lg text-gray-500 mb-2">
-                        {username}
-                      </p>
+                      <p className="text-lg text-gray-500 mb-2">{username}</p>
                     </>
                   )}
 
@@ -655,7 +667,9 @@ export default function ProfilePage() {
                           disabled={isSaving}
                           className="flex items-center cursor-pointer gap-2 rounded-lg bg-[#f9622e] px-4 py-2 font-medium text-white transition-colors hover:bg-[#e0501e] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {isSaving && <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1"></div>}
+                          {isSaving && (
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1"></div>
+                          )}
                           Lưu
                         </button>
                         <button
@@ -674,77 +688,7 @@ export default function ProfilePage() {
                         Chỉnh sửa trang cá nhân
                       </button>
                     )
-                  ) : (
-                    <>
-                      <button
-                        onClick={handleFollow}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${isFollowing
-                          ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          : "bg-[#f9622e] text-white hover:bg-[#e0501e]"
-                          }`}
-                      >
-                        {isFollowing ? (
-                          <>
-                            <UserCheck className="h-4 w-4" />
-                            Đang theo dõi
-                          </>
-                        ) : (
-                          <>
-                            <UserPlus className="h-4 w-4" />
-                            Theo dõi
-                          </>
-                        )}
-                      </button>
-                      <button className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-200">
-                        <MessageCircle className="h-4 w-4" />
-                        Nhắn tin
-                      </button>
-                      <div className="relative" ref={menuRef}>
-                        <button
-                          onClick={() => setIsMenuOpen(!isMenuOpen)}
-                          className="rounded-lg bg-gray-100 p-2 text-gray-600 transition-colors hover:bg-gray-200 h-full flex items-center justify-center cursor-pointer"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </button>
-
-                        {isMenuOpen && (
-                          <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black/5 focus:outline-none z-50 animate-in fade-in zoom-in-95 duration-200">
-                            <div className="py-1">
-                              <button
-                                onClick={handleCopyLink}
-                                className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                              >
-                                <Copy className="mr-3 h-4 w-4 text-gray-500" />
-                                Sao chép liên kết
-                              </button>
-                              <button
-                                onClick={() => { setIsMenuOpen(false); toast("Tính năng chia sẻ đang phát triển", "info"); }}
-                                className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                              >
-                                <Share2 className="mr-3 h-4 w-4 text-gray-500" />
-                                Chia sẻ trang cá nhân
-                              </button>
-                              <div className="border-t border-gray-100 my-1"></div>
-                              <button
-                                onClick={handleReportUser}
-                                className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                              >
-                                <Flag className="mr-3 h-4 w-4 text-gray-500" />
-                                Báo cáo trang cá nhân
-                              </button>
-                              <button
-                                onClick={handleBlockUser}
-                                className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
-                              >
-                                <Ban className="mr-3 h-4 w-4 text-red-500" />
-                                Chặn người dùng
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -753,7 +697,9 @@ export default function ProfilePage() {
             {isEditing && (
               <div className="px-6 pb-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Bio (Giới thiệu)</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Bio (Giới thiệu)
+                  </label>
                   <textarea
                     value={editedBio}
                     onChange={(e) => setEditedBio(e.target.value)}
@@ -764,7 +710,9 @@ export default function ProfilePage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Vị trí</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Vị trí
+                    </label>
                     <input
                       type="text"
                       value={editedLocation}
@@ -774,7 +722,9 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Email
+                    </label>
                     <input
                       type="email"
                       value={userEmail}
@@ -784,7 +734,9 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Ngày sinh (DOB)</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Ngày sinh (DOB)
+                  </label>
                   <input
                     type="date"
                     value={editedDob}
@@ -802,17 +754,25 @@ export default function ProfilePage() {
               {tabs.map((tab, index) => (
                 <button
                   key={tab.key}
-                  ref={(el) => { tabsRef.current[index] = el; }}
+                  ref={(el) => {
+                    tabsRef.current[index] = el;
+                  }}
                   onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                  className={`relative z-10 flex items-center gap-2 px-6 py-4 font-medium transition-all duration-300 whitespace-nowrap hover:bg-gray-50 ${activeTab === tab.key
-                    ? "text-[#f9622e]"
-                    : "text-gray-500 cursor-pointer hover:text-gray-700"
-                    }`}
+                  className={`relative z-10 flex items-center gap-2 px-6 py-4 font-medium transition-all duration-300 whitespace-nowrap hover:bg-gray-50 ${
+                    activeTab === tab.key
+                      ? "text-[#f9622e]"
+                      : "text-gray-500 cursor-pointer hover:text-gray-700"
+                  }`}
                 >
                   {tab.label}
                   {tab.count !== undefined && (
-                    <span className={`rounded-full px-2 py-1 text-xs transition-colors duration-300 ${activeTab === tab.key ? "bg-orange-100 text-[#f9622e]" : "bg-gray-100 text-gray-600"
-                      }`}>
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs transition-colors duration-300 ${
+                        activeTab === tab.key
+                          ? "bg-orange-100 text-[#f9622e]"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
                       {formatStatNumber(tab.count as number)}
                     </span>
                   )}
@@ -820,26 +780,33 @@ export default function ProfilePage() {
               ))}
               <div
                 className="absolute bottom-0 h-0.5 bg-[#f9622e] transition-all duration-300 ease-in-out z-20"
-                style={{ left: tabUnderlineStyle.left, width: tabUnderlineStyle.width }}
+                style={{
+                  left: tabUnderlineStyle.left,
+                  width: tabUnderlineStyle.width,
+                }}
               />
             </div>
           </div>
 
           {/* Content Area */}
-          <div className={`flex gap-6 ${activeTab !== 'posts' ? 'flex-col' : 'flex-row items-start'}`}>
+          <div
+            className={`flex gap-6 ${activeTab !== "posts" ? "flex-col" : "flex-row items-start"}`}
+          >
             {/* Main Content */}
-            <div className={activeTab === "posts" ? "flex-1 min-w-0" : "w-full"}>
+            <div
+              className={activeTab === "posts" ? "flex-1 min-w-0" : "w-full"}
+            >
               {activeTab === "posts" && (
                 <div className="space-y-4">
                   {/* Create Post - Only show if own profile */}
-                  {user && (
-                    <CreatePostSimple onCreatePost={handleCreatePost} />
-                  )}
+                  {user && <CreatePostSimple onCreatePost={handleCreatePost} />}
 
                   {/* Posts Feed */}
                   <div className="space-y-4">
                     {isLoadingPosts ? (
-                      <div className="text-center py-4 text-gray-500">Đang tải bài viết...</div>
+                      <div className="text-center py-4 text-gray-500">
+                        Đang tải bài viết...
+                      </div>
                     ) : posts.length > 0 ? (
                       posts.map((post) => (
                         <PostCard
@@ -854,7 +821,9 @@ export default function ProfilePage() {
                         />
                       ))
                     ) : (
-                      <div className="text-center py-4 text-gray-500">Chưa có bài viết nào.</div>
+                      <div className="text-center py-4 text-gray-500">
+                        Chưa có bài viết nào.
+                      </div>
                     )}
                   </div>
                 </div>
@@ -866,7 +835,9 @@ export default function ProfilePage() {
                     Bạn bè ({friends.length})
                   </h2>
                   {isLoadingFriends ? (
-                    <div className="text-center py-4 text-gray-500">Đang tải bạn bè...</div>
+                    <div className="text-center py-4 text-gray-500">
+                      Đang tải bạn bè...
+                    </div>
                   ) : friends.length > 0 ? (
                     <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                       {friends.map((friend) => (
@@ -876,7 +847,10 @@ export default function ProfilePage() {
                           onClick={() => router.push(`/profile/${friend.id}`)}
                         >
                           <Image
-                            src={friend.avatarUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"}
+                            src={
+                              friend.avatarUrl ||
+                              "https://api.dicebear.com/7.x/avataaars/svg?seed=default"
+                            }
                             alt={friend.name}
                             width={100}
                             height={100}
@@ -888,7 +862,9 @@ export default function ProfilePage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              router.push(`/messages?userId=${friend.id}&name=${friend.name}&avatar=${friend.avatarUrl || "/userAvatar.png"}`);
+                              router.push(
+                                `/messages?userId=${friend.id}&name=${friend.name}&avatar=${friend.avatarUrl || "/userAvatar.png"}`,
+                              );
                             }}
                             className="mt-3 w-full rounded-md bg-blue-50 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-100 transition-colors"
                           >
@@ -899,7 +875,10 @@ export default function ProfilePage() {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
-                      <p>Bạn chưa có bạn bè nào. Hãy bắt đầu kết nối với mọi người nhé!</p>
+                      <p>
+                        Bạn chưa có bạn bè nào. Hãy bắt đầu kết nối với mọi
+                        người nhé!
+                      </p>
                     </div>
                   )}
                 </div>
@@ -907,7 +886,9 @@ export default function ProfilePage() {
 
               {activeTab === "photos" && (
                 <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
-                  <h2 className="mb-4 text-xl font-bold text-gray-900">Ảnh ({stats.photosCount})</h2>
+                  <h2 className="mb-4 text-xl font-bold text-gray-900">
+                    Ảnh ({stats.photosCount})
+                  </h2>
                   <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
                     {photos.length > 0 ? (
                       photos.map((photoUrl, i) => (
@@ -939,7 +920,9 @@ export default function ProfilePage() {
 
               {activeTab === "videos" && (
                 <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
-                  <h2 className="mb-4 text-xl font-bold text-gray-900">Videos ({stats.videosCount})</h2>
+                  <h2 className="mb-4 text-xl font-bold text-gray-900">
+                    Videos ({stats.videosCount})
+                  </h2>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     {videos.length > 0 ? (
                       videos.map((videoUrl, i) => (
@@ -968,7 +951,6 @@ export default function ProfilePage() {
               )}
             </div>
           </div>
-
         </div>
       )}
 

@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { MessageInput } from "@/components/chat/MessageInput";
 import { messagesAPI } from "@/services/messages.service";
+import { socketService } from "@/services/socket.service";
 
 interface Message {
   id: string;
@@ -35,15 +36,20 @@ export default function MessagesPage() {
   const searchParams = useSearchParams();
   const userId = searchParams.get("userId") || "";
   const name = searchParams.get("name") || "User";
-  const avatar = searchParams.get("avatar") || "https://api.dicebear.com/7.x/avataaars/svg?seed=default";
+  const avatar =
+    searchParams.get("avatar") ||
+    "https://api.dicebear.com/7.x/avataaars/svg?seed=default";
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
 
   // Search states
   const [searchQuery, setSearchQuery] = useState("");
   const [matchIds, setMatchIds] = useState<string[]>([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -68,6 +74,78 @@ export default function MessagesPage() {
     }
   }, []);
 
+  // Setup WebSocket connection
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    // Kết nối WebSocket
+    socketService.connect(currentUserId);
+
+    // Lắng nghe tin nhắn mới
+    socketService.onNewMessage((message: APIMessage) => {
+      // Chỉ thêm tin nhắn nếu từ người đang chat
+      if (message.senderId === userId) {
+        const newMessage: Message = {
+          id: message.id,
+          content: message.content,
+          timestamp: new Date(message.createdAt).toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          isOwn: false,
+          avatar: message.sender?.avatarUrl || avatar,
+          senderName: message.sender?.name || name,
+        };
+        setMessages((prev) => [...prev, newMessage]);
+      }
+    });
+
+    // Lắng nghe tin nhắn đã gửi
+    socketService.onMessageSent((message: APIMessage) => {
+      // Cập nhật tin nhắn với ID từ server
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id.startsWith("temp-") && msg.content === message.content
+            ? {
+                ...msg,
+                id: message.id,
+                timestamp: new Date(message.createdAt).toLocaleTimeString(
+                  "vi-VN",
+                  {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  },
+                ),
+              }
+            : msg,
+        ),
+      );
+    });
+
+    // Lắng nghe typing indicator
+    socketService.onUserTyping(
+      (data: { userId: string; isTyping: boolean }) => {
+        if (data.userId === userId) {
+          setIsTyping(data.isTyping);
+
+          // Tự động tắt typing sau 3 giây
+          if (data.isTyping && typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+          }
+          if (data.isTyping) {
+            typingTimeoutRef.current = setTimeout(() => {
+              setIsTyping(false);
+            }, 3000);
+          }
+        }
+      },
+    );
+
+    return () => {
+      socketService.removeAllListeners();
+    };
+  }, [currentUserId, userId, avatar, name]);
+
   // Fetch conversation messages
   useEffect(() => {
     const fetchMessages = async () => {
@@ -82,7 +160,9 @@ export default function MessagesPage() {
         const data = await messagesAPI.getConversation(userId);
 
         // Convert API messages to UI format
-        const formattedMessages: Message[] = (Array.isArray(data) ? data : data.data || []).map((msg: APIMessage) => ({
+        const formattedMessages: Message[] = (
+          Array.isArray(data) ? data : data.data || []
+        ).map((msg: APIMessage) => ({
           id: msg.id,
           content: msg.content,
           timestamp: new Date(msg.createdAt).toLocaleTimeString("vi-VN", {
@@ -90,8 +170,14 @@ export default function MessagesPage() {
             minute: "2-digit",
           }),
           isOwn: msg.senderId === currentUserId,
-          avatar: msg.senderId === currentUserId ? undefined : msg.sender?.avatarUrl || avatar,
-          senderName: msg.senderId === currentUserId ? undefined : msg.sender?.name || name,
+          avatar:
+            msg.senderId === currentUserId
+              ? undefined
+              : msg.sender?.avatarUrl || avatar,
+          senderName:
+            msg.senderId === currentUserId
+              ? undefined
+              : msg.sender?.name || name,
         }));
 
         setMessages(formattedMessages);
@@ -114,7 +200,7 @@ export default function MessagesPage() {
   }, [userId, currentUserId, avatar, name]);
 
   const handleSendMessage = async (content: string, file?: File | null) => {
-    if (!userId) return;
+    if (!userId || !currentUserId) return;
 
     let attachment;
     if (file) {
@@ -124,8 +210,9 @@ export default function MessagesPage() {
       } as const;
     }
 
+    const tempId = `temp-${Date.now()}`;
     const newMessage: Message = {
-      id: Date.now().toString(),
+      id: tempId,
       content,
       timestamp: new Date().toLocaleTimeString("vi-VN", {
         hour: "2-digit",
@@ -138,33 +225,46 @@ export default function MessagesPage() {
     // Add message to UI immediately for better UX
     setMessages([...messages, newMessage]);
 
-    // Send message to API
+    // Send message via WebSocket
     try {
-      await messagesAPI.sendMessage(userId, content);
+      socketService.sendMessage(userId, content);
     } catch (error) {
       console.error("Error sending message:", error);
-      // Optionally remove the message if sending failed
-      // setMessages(messages.filter(m => m.id !== newMessage.id));
+      // Fallback to HTTP if WebSocket fails
+      try {
+        await messagesAPI.sendMessage(userId, content);
+      } catch (httpError) {
+        console.error("HTTP fallback failed:", httpError);
+        // Remove message if both failed
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      }
     }
   };
 
   // Search handlers
-  const handleSearch = useCallback((query: string) => {
-    setSearchQuery(query);
-    if (!query.trim()) {
-      setMatchIds([]);
-      setCurrentMatchIndex(0);
-      return;
-    }
+  const handleSearch = useCallback(
+    (query: string) => {
+      setSearchQuery(query);
+      if (!query.trim()) {
+        setMatchIds([]);
+        setCurrentMatchIndex(0);
+        return;
+      }
 
-    const filteredMessageIds = messages
-      .filter((msg) => msg.content.toLowerCase().includes(query.toLowerCase()))
-      .map((msg) => msg.id);
+      const filteredMessageIds = messages
+        .filter((msg) =>
+          msg.content.toLowerCase().includes(query.toLowerCase()),
+        )
+        .map((msg) => msg.id);
 
-    setMatchIds(filteredMessageIds);
-    // Start from the most recent result (the last one in the list)
-    setCurrentMatchIndex(filteredMessageIds.length > 0 ? filteredMessageIds.length - 1 : 0);
-  }, [messages]);
+      setMatchIds(filteredMessageIds);
+      // Start from the most recent result (the last one in the list)
+      setCurrentMatchIndex(
+        filteredMessageIds.length > 0 ? filteredMessageIds.length - 1 : 0,
+      );
+    },
+    [messages],
+  );
 
   const handleNextMatch = useCallback(() => {
     if (matchIds.length === 0) return;
@@ -173,7 +273,9 @@ export default function MessagesPage() {
 
   const handlePrevMatch = useCallback(() => {
     if (matchIds.length === 0) return;
-    setCurrentMatchIndex((prev) => (prev - 1 + matchIds.length) % matchIds.length);
+    setCurrentMatchIndex(
+      (prev) => (prev - 1 + matchIds.length) % matchIds.length,
+    );
   }, [matchIds]);
 
   return (
@@ -209,16 +311,50 @@ export default function MessagesPage() {
                 senderName={message.senderName}
                 attachment={message.attachment}
                 highlightKeyword={searchQuery}
-                isCurrentMatch={matchIds.length > 0 && message.id === matchIds[currentMatchIndex]}
+                isCurrentMatch={
+                  matchIds.length > 0 &&
+                  message.id === matchIds[currentMatchIndex]
+                }
               />
             ))}
+
+            {/* Typing Indicator */}
+            {isTyping && (
+              <div className="flex items-center gap-2 px-4 py-2">
+                <img src={avatar} alt={name} className="h-8 w-8 rounded-full" />
+                <div className="bg-white rounded-2xl px-4 py-2 shadow-sm">
+                  <div className="flex gap-1">
+                    <span
+                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "0ms" }}
+                    ></span>
+                    <span
+                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "150ms" }}
+                    ></span>
+                    <span
+                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "300ms" }}
+                    ></span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
       {/* Message Input */}
-      <MessageInput onSendMessage={handleSendMessage} />
+      <MessageInput
+        onSendMessage={handleSendMessage}
+        onTyping={(isTyping) => {
+          if (userId) {
+            socketService.sendTyping(userId, isTyping);
+          }
+        }}
+      />
     </div>
   );
 }
