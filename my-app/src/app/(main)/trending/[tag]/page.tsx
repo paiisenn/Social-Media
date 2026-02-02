@@ -1,7 +1,7 @@
 "use client";
 
-import { use, useState, useEffect, useRef } from "react";
-import MainLayout from "@/app/main/layout";
+import { use, useState, useEffect } from "react";
+
 import {
     TrendingUp,
     ArrowLeft,
@@ -54,7 +54,7 @@ export default function TrendingPage({
     const tagDesc = `Khám phá các bài viết phổ biến liên quan đến #${tag}.`;
 
     return (
-        <MainLayout>
+        <>
             <div className="mx-auto max-w-4xl pb-2">
                 {/* Header Section */}
                 <div className="mb-4 rounded-2xl bg-white px-6 py-4 shadow-sm border border-gray-100 relative overflow-hidden">
@@ -169,6 +169,6 @@ export default function TrendingPage({
                 onClose={() => setShowAuthModal(false)}
                 feature={authModalFeature}
             />
-        </MainLayout>
+        </>
     );
 }

@@ -7,22 +7,14 @@ import {
   Calendar,
   Mail,
   Edit3,
-  MoreHorizontal,
-  UserPlus,
-  MessageCircle,
-  UserCheck,
   Image as ImageIcon,
   Video,
-  Flag,
-  Ban,
-  Share2,
-  Copy,
   Cake,
 } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { useRef, useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import MainLayout from "@/app/main/layout";
+
 import { CreatePostSimple } from "@/components/post/CreatePostSimple";
 import { PostCard } from "@/components/post/PostCard";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
@@ -67,13 +59,6 @@ interface Post {
 }
 
 const mockPosts: Post[] = [];
-
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString("vi-VN", {
-    year: "numeric",
-    month: "long",
-  });
-}
 
 function formatJoinDate(dateString: string | undefined | null) {
   if (!dateString) return "Chưa cập nhật";
@@ -176,19 +161,6 @@ export default function ProfilePage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleCopyLink = () => {
-    const url = window.location.href;
-    navigator.clipboard
-      .writeText(url)
-      .then(() => {
-        toast("Đã sao chép liên kết trang cá nhân!", "success");
-        setIsMenuOpen(false);
-      })
-      .catch(() => {
-        toast("Không thể sao chép liên kết.", "error");
-      });
-  };
 
   const handleEditCoverClick = () => {
     coverInputRef.current?.click();
@@ -328,14 +300,14 @@ export default function ProfilePage() {
         mediaUrls: p.mediaUrls || [],
         image:
           p.mediaUrls &&
-          p.mediaUrls.length > 0 &&
-          !p.mediaUrls[0].endsWith(".mp4")
+            p.mediaUrls.length > 0 &&
+            !p.mediaUrls[0].endsWith(".mp4")
             ? p.mediaUrls[0]
             : undefined,
         video:
           p.mediaUrls &&
-          p.mediaUrls.length > 0 &&
-          p.mediaUrls[0].endsWith(".mp4")
+            p.mediaUrls.length > 0 &&
+            p.mediaUrls[0].endsWith(".mp4")
             ? p.mediaUrls[0]
             : undefined,
         likes: p._count?.reactions || 0,
@@ -496,7 +468,7 @@ export default function ProfilePage() {
   }, [activeTab, tabs]);
 
   return (
-    <MainLayout>
+    <>
       {loading ? (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
@@ -758,20 +730,18 @@ export default function ProfilePage() {
                     tabsRef.current[index] = el;
                   }}
                   onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                  className={`relative z-10 flex items-center gap-2 px-6 py-4 font-medium transition-all duration-300 whitespace-nowrap hover:bg-gray-50 ${
-                    activeTab === tab.key
-                      ? "text-[#f9622e]"
-                      : "text-gray-500 cursor-pointer hover:text-gray-700"
-                  }`}
+                  className={`relative z-10 flex items-center gap-2 px-6 py-4 font-medium transition-all duration-300 whitespace-nowrap hover:bg-gray-50 ${activeTab === tab.key
+                    ? "text-[#f9622e]"
+                    : "text-gray-500 cursor-pointer hover:text-gray-700"
+                    }`}
                 >
                   {tab.label}
                   {tab.count !== undefined && (
                     <span
-                      className={`rounded-full px-2 py-1 text-xs transition-colors duration-300 ${
-                        activeTab === tab.key
-                          ? "bg-orange-100 text-[#f9622e]"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
+                      className={`rounded-full px-2 py-1 text-xs transition-colors duration-300 ${activeTab === tab.key
+                        ? "bg-orange-100 text-[#f9622e]"
+                        : "bg-gray-100 text-gray-600"
+                        }`}
                     >
                       {formatStatNumber(tab.count as number)}
                     </span>
@@ -967,6 +937,6 @@ export default function ProfilePage() {
         onClose={() => setIsMediaLibraryOpen(false)}
         onSelect={(url) => setAvatar(url)}
       />
-    </MainLayout>
+    </>
   );
 }

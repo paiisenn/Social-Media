@@ -13,7 +13,7 @@ import {
   Clock,
   FolderOpen
 } from "lucide-react";
-import MainLayout from "@/app/main/layout";
+
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -190,7 +190,7 @@ export default function SavedPage() {
   }, [savedPosts, activeTypeTab, searchQuery]);
 
   return (
-    <MainLayout>
+    <>
       {isPageLoading || loading ? (
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
@@ -429,6 +429,6 @@ export default function SavedPage() {
           </div>
         </div>
       )}
-    </MainLayout>
+    </>
   );
 }

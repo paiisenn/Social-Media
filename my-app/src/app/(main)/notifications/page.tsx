@@ -11,10 +11,8 @@ import {
   CheckCheck,
   Clock,
   Filter,
-  Check,
-  X,
 } from "lucide-react";
-import MainLayout from "@/app/main/layout";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,8 +20,6 @@ import {
   notificationsAPI,
   Notification,
 } from "@/services/notifications.service";
-import { friendsAPI } from "@/services/friends.service";
-import { socketService } from "@/services/socket.service";
 
 function getNotificationIcon(type: string) {
   switch (type) {
@@ -153,7 +149,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <MainLayout>
+    <>
       {loading || isLoading ? (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
@@ -201,21 +197,19 @@ export default function NotificationsPage() {
             <div className="flex items-center gap-2 p-1 bg-gray-100/80 rounded-xl">
               <button
                 onClick={() => setFilter("all")}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer ${
-                  filter === "all"
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer ${filter === "all"
                     ? "bg-white text-[#f9622e] shadow-md"
                     : "text-gray-500 hover:text-gray-900"
-                }`}
+                  }`}
               >
                 Tất cả
               </button>
               <button
                 onClick={() => setFilter("unread")}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer ${
-                  filter === "unread"
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer ${filter === "unread"
                     ? "bg-white text-[#f9622e] shadow-md"
                     : "text-gray-500 hover:text-gray-900"
-                }`}
+                  }`}
               >
                 <Filter className="w-4 h-4" />
                 Chưa đọc
@@ -243,11 +237,10 @@ export default function NotificationsPage() {
                   key={notif.id}
                   style={{ animationDelay: `${index * 50}ms` }}
                   onClick={() => handleMarkAsRead(notif.id)}
-                  className={`group relative flex gap-4 rounded-2xl p-4 transition-all duration-300 cursor-pointer border hover:shadow-lg hover:-translate-y-1 animate-in slide-in-from-bottom-2 fade-in ${
-                    notif.isRead
+                  className={`group relative flex gap-4 rounded-2xl p-4 transition-all duration-300 cursor-pointer border hover:shadow-lg hover:-translate-y-1 animate-in slide-in-from-bottom-2 fade-in ${notif.isRead
                       ? "bg-white border-gray-100 hover:border-orange-200 shadow-sm"
                       : "bg-orange-50 border-orange-100 hover:border-orange-400 shadow-md shadow-orange-100/50"
-                  }`}
+                    }`}
                 >
                   <div className="relative shrink-0 self-start mt-1">
                     <Image
@@ -304,6 +297,6 @@ export default function NotificationsPage() {
           </div>
         </div>
       )}
-    </MainLayout>
+    </>
   );
 }

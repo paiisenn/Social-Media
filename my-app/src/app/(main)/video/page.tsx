@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { PostCard } from "@/components/post/PostCard";
 import { PlaySquare } from "lucide-react";
 
 interface Post {
   id: string;
   author: {
+    id: string;
     name: string;
     avatar: string;
     username?: string;
@@ -21,16 +23,14 @@ interface Post {
 }
 
 export default function VideoPage() {
-  const currentUser = {
-    name: "Dữ liệu của bạn bè",
-    avatar: "/userAvatar.png",
-  };
+  const { user: currentUser } = useAuth();
 
   // Mock data for video posts
   const [videos, setVideos] = useState<Post[]>([
     {
       id: "v1",
       author: {
+        id: "user1",
         name: "Nguyễn Văn A",
         avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=NguyenA",
       },
@@ -44,6 +44,7 @@ export default function VideoPage() {
     {
       id: "v2",
       author: {
+        id: "user2",
         name: "Trần Thị B",
         avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=TranB",
       },
@@ -59,6 +60,7 @@ export default function VideoPage() {
       id: "v3",
       author: {
         name: "Lê Minh C",
+        id: "user3",
         avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=LeMinh",
       },
       content: "Workout tại nhà - 10 phút tập luyện hiệu quả mỗi ngày 💪",
@@ -72,6 +74,7 @@ export default function VideoPage() {
       id: "v4",
       author: {
         name: "Phạm Thị D",
+        id: "user4",
         avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=PhamD",
       },
       content: "Makeup tutorial - Trang điểm tự nhiên cho người mặt tròn",
@@ -85,6 +88,7 @@ export default function VideoPage() {
       id: "v5",
       author: {
         name: "Hoàng Văn E",
+        id: "user5",
         avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=HoangE",
       },
       content: "Review iPhone 15 Pro Max - Có đáng mua không?",
@@ -141,7 +145,7 @@ export default function VideoPage() {
             <PostCard
               key={video.id}
               {...video}
-              isOwner={video.author.name === currentUser.name}
+              isOwner={currentUser?.id === video.author.id}
               onDelete={() => handleDeleteVideo(video.id)}
               onEdit={(newContent) => handleEditVideo(video.id, newContent)}
               onReport={() => handleReportVideo(video.id)}

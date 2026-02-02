@@ -10,18 +10,15 @@ import {
   UserPlus,
   MessageCircle,
   UserCheck,
-  Video,
   Flag,
   Ban,
   Share2,
   Copy,
-  ChevronDown,
-  UserMinus,
   Clock,
 } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { useRef, useState, useEffect } from "react";
-import MainLayout from "@/app/main/layout";
+
 import { PostCard } from "@/components/post/PostCard";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { UnfriendModal } from "@/components/ui/UnfriendModal";
@@ -164,7 +161,7 @@ export default function UserProfilePage() {
   const handleMessage = () => {
     handleProtectedAction("nhắn tin", () => {
       router.push(
-        `/main/messages?userId=${userId}&name=${encodeURIComponent(userData?.name || "")}&avatar=${encodeURIComponent(userData?.avatar || "/userAvatar.png")}`,
+        `/messages?userId=${userId}&name=${encodeURIComponent(userData?.name || "")}&avatar=${encodeURIComponent(userData?.avatar || "/userAvatar.png")}`,
       );
     });
   };
@@ -239,14 +236,14 @@ export default function UserProfilePage() {
           content: p.content,
           image:
             p.mediaUrls &&
-            p.mediaUrls.length > 0 &&
-            !p.mediaUrls[0].endsWith(".mp4")
+              p.mediaUrls.length > 0 &&
+              !p.mediaUrls[0].endsWith(".mp4")
               ? p.mediaUrls[0]
               : undefined,
           video:
             p.mediaUrls &&
-            p.mediaUrls.length > 0 &&
-            p.mediaUrls[0].endsWith(".mp4")
+              p.mediaUrls.length > 0 &&
+              p.mediaUrls[0].endsWith(".mp4")
               ? p.mediaUrls[0]
               : undefined,
           likes: p._count?.reactions || 0,
@@ -377,17 +374,17 @@ export default function UserProfilePage() {
 
   if (isLoading) {
     return (
-      <MainLayout>
+      <>
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f9622e]"></div>
         </div>
-      </MainLayout>
+      </>
     );
   }
 
   if (!userData) {
     return (
-      <MainLayout>
+      <>
         <div className="flex flex-col items-center justify-center min-h-screen">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
             Không tìm thấy người dùng
@@ -402,12 +399,12 @@ export default function UserProfilePage() {
             Quay lại
           </button>
         </div>
-      </MainLayout>
+      </>
     );
   }
 
   return (
-    <MainLayout>
+    <>
       <div className="mx-auto max-w-6xl">
         {/* Cover Photo Section */}
         <div className="relative mb-4 overflow-hidden rounded-lg bg-white shadow-sm">
@@ -496,15 +493,14 @@ export default function UserProfilePage() {
               <div className="flex gap-2">
                 <button
                   onClick={handleFriendAction}
-                  className={`flex items-center cursor-pointer gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                    friendshipStatus === "friends"
+                  className={`flex items-center cursor-pointer gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${friendshipStatus === "friends"
+                    ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    : friendshipStatus === "pending_sent"
                       ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      : friendshipStatus === "pending_sent"
-                        ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        : friendshipStatus === "pending_received"
-                          ? "bg-green-500 text-white hover:bg-green-600"
-                          : "bg-[#f9622e] text-white hover:bg-[#e0501e]"
-                  }`}
+                      : friendshipStatus === "pending_received"
+                        ? "bg-green-500 text-white hover:bg-green-600"
+                        : "bg-[#f9622e] text-white hover:bg-[#e0501e]"
+                    }`}
                 >
                   {friendshipStatus === "friends" ? (
                     <>
@@ -601,20 +597,18 @@ export default function UserProfilePage() {
                   tabsRef.current[index] = el;
                 }}
                 onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                className={`relative z-10 flex items-center gap-2 px-6 py-4 font-medium transition-all duration-300 whitespace-nowrap hover:bg-gray-50 ${
-                  activeTab === tab.key
-                    ? "text-[#f9622e]"
-                    : "text-gray-500 cursor-pointer hover:text-gray-700"
-                }`}
+                className={`relative z-10 flex items-center gap-2 px-6 py-4 font-medium transition-all duration-300 whitespace-nowrap hover:bg-gray-50 ${activeTab === tab.key
+                  ? "text-[#f9622e]"
+                  : "text-gray-500 cursor-pointer hover:text-gray-700"
+                  }`}
               >
                 {tab.label}
                 {tab.count !== undefined && (
                   <span
-                    className={`rounded-full px-2 py-1 text-xs transition-colors duration-300 ${
-                      activeTab === tab.key
-                        ? "bg-orange-100 text-[#f9622e]"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
+                    className={`rounded-full px-2 py-1 text-xs transition-colors duration-300 ${activeTab === tab.key
+                      ? "bg-orange-100 text-[#f9622e]"
+                      : "bg-gray-100 text-gray-600"
+                      }`}
                   >
                     {formatStatNumber(tab.count as number)}
                   </span>
@@ -688,7 +682,7 @@ export default function UserProfilePage() {
                               e.stopPropagation();
                               handleProtectedAction("nhắn tin", () => {
                                 router.push(
-                                  `/main/messages?userId=${friend.id}&name=${friend.name}&avatar=${friend.avatarUrl || "/userAvatar.png"}`,
+                                  `/messages?userId=${friend.id}&name=${friend.name}&avatar=${friend.avatarUrl || "/userAvatar.png"}`,
                                 );
                               });
                             }}
@@ -794,6 +788,6 @@ export default function UserProfilePage() {
         isOpen={isLightboxOpen}
         onClose={() => setIsLightboxOpen(false)}
       />
-    </MainLayout>
+    </>
   );
 }

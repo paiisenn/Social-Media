@@ -181,7 +181,7 @@ export default function LoginPage() {
                             </label>
 
                             <Link
-                                href="/forgot-password"
+                                href="/auth/forgot-password"
                                 className="text-sm font-bold text-[#f9622e] hover:text-[#d04a1b] hover:underline underline-offset-4 transition-colors"
                             >
                                 Quên mật khẩu?
@@ -247,7 +247,7 @@ export default function LoginPage() {
                     <div className="flex items-center justify-center gap-1 text-sm font-medium text-gray-600">
                         <span>Bạn chưa có tài khoản?</span>
                         <Link
-                            href="/register"
+                            href="/auth/register"
                             className="font-bold text-[#f9622e] hover:text-[#d04a1b] hover:underline underline-offset-4 transition-colors"
                         >
                             Đăng ký ngay

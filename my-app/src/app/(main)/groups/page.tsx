@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Users, PlusCircle, Search, Compass, Globe, Lock, ChevronDown, ArrowUpDown, X } from "lucide-react";
-import MainLayout from "@/app/main/layout";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -158,7 +158,7 @@ export default function GroupsPage() {
 	};
 
 	return (
-		<MainLayout>
+		<>
 			<div className="mx-auto max-w-5xl py-2">
 				{/* Header Section */}
 				<div className="mb-6 flex flex-col gap-6">
@@ -353,7 +353,7 @@ export default function GroupsPage() {
 											)}
 
 											<div className="mt-auto">
-												<button 
+												<button
 													onClick={() => {
 														if (!isAuthenticated) {
 															setShowAuthModal(true);
@@ -480,6 +480,6 @@ export default function GroupsPage() {
 				onClose={() => setShowAuthModal(false)}
 				feature="tham gia nhóm"
 			/>
-		</MainLayout>
+		</>
 	);
 }

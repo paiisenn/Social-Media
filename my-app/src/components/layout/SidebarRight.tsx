@@ -153,10 +153,10 @@ export function SidebarRight() {
       // Loại bỏ các yêu cầu trùng lặp từ cùng một người (nếu có)
       const uniqueRequests = Array.isArray(data)
         ? (data as FriendRequest[]).filter(
-            (req, index, self) =>
-              index ===
-              self.findIndex((r) => r.requesterId === req.requesterId),
-          )
+          (req, index, self) =>
+            index ===
+            self.findIndex((r) => r.requesterId === req.requesterId),
+        )
         : [];
       setFriendRequests(uniqueRequests);
     } catch (err) {
@@ -240,22 +240,20 @@ export function SidebarRight() {
                   <button
                     ref={primaryTabRef}
                     onClick={() => setActiveTab("primary")}
-                    className={`pb-2 text-sm font-semibold transition-colors duration-300 ${
-                      activeTab === "primary"
-                        ? "text-[#f9622e]"
-                        : "text-gray-500 hover:text-gray-800 cursor-pointer"
-                    }`}
+                    className={`pb-2 text-sm font-semibold transition-colors duration-300 ${activeTab === "primary"
+                      ? "text-[#f9622e]"
+                      : "text-gray-500 hover:text-gray-800 cursor-pointer"
+                      }`}
                   >
                     Chính
                   </button>
                   <button
                     ref={requestsTabRef}
                     onClick={() => setActiveTab("requests")}
-                    className={`relative pb-2 text-sm font-semibold transition-colors duration-300 group ${
-                      activeTab === "requests"
-                        ? "text-[#f9622e]"
-                        : "text-gray-500 hover:text-gray-800 cursor-pointer"
-                    }`}
+                    className={`relative pb-2 text-sm font-semibold transition-colors duration-300 group ${activeTab === "requests"
+                      ? "text-[#f9622e]"
+                      : "text-gray-500 hover:text-gray-800 cursor-pointer"
+                      }`}
                   >
                     Yêu cầu
                     {requestCount > 0 && (
@@ -290,7 +288,7 @@ export function SidebarRight() {
                         {filteredConversations.map((conv) => (
                           <li key={`conv-${conv.partner.id}`}>
                             <Link
-                              href={`/main/messages?userId=${conv.partner.id}&name=${encodeURIComponent(conv.partner.name)}&avatar=${encodeURIComponent(conv.partner.avatarUrl || "/userAvatar.png")}`}
+                              href={`/messages?userId=${conv.partner.id}&name=${encodeURIComponent(conv.partner.name)}&avatar=${encodeURIComponent(conv.partner.avatarUrl || "/userAvatar.png")}`}
                               className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-100"
                             >
                               <Image
@@ -330,7 +328,7 @@ export function SidebarRight() {
                           .map((friend) => (
                             <li key={`friend-${friend.id}`}>
                               <Link
-                                href={`/main/messages?userId=${friend.id}&name=${encodeURIComponent(friend.name)}&avatar=${encodeURIComponent(friend.avatarUrl || "/userAvatar.png")}`}
+                                href={`/messages?userId=${friend.id}&name=${encodeURIComponent(friend.name)}&avatar=${encodeURIComponent(friend.avatarUrl || "/userAvatar.png")}`}
                                 className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-100"
                               >
                                 <Image
@@ -361,57 +359,57 @@ export function SidebarRight() {
                     </div>
                   )
                 ) : // Requests Tab Content
-                loadingRequests ? (
-                  <div className="py-4 text-center text-sm text-gray-500">
-                    Đang tải yêu cầu...
-                  </div>
-                ) : friendRequests.length > 0 ? (
-                  <div className="max-h-60 overflow-y-auto custom-scrollbar pr-1">
-                    <ul className="space-y-2">
-                      {friendRequests.map((req) => (
-                        <li key={req.id} className="flex items-center gap-3">
-                          <Image
-                            src={req.requester.avatarUrl || "/userAvatar.png"}
-                            alt={req.requester.name}
-                            width={40}
-                            height={40}
-                            className="h-10 w-10 rounded-full object-cover"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-gray-800">
-                              {req.requester.name}
-                            </p>
-                            <p className="truncate text-[11px] text-gray-500">
-                              Gửi lời mời kết bạn
-                            </p>
-                            <div className="mt-1.5 flex gap-2">
-                              <button
-                                onClick={() =>
-                                  handleAcceptRequest(req.requesterId)
-                                }
-                                className="rounded-md bg-[#f9622e] cursor-pointer px-3 py-1 text-[11px] font-bold text-white hover:bg-[#d84e1e] transition-colors"
-                              >
-                                Chấp nhận
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleRejectRequest(req.requesterId)
-                                }
-                                className="rounded-md bg-gray-200 cursor-pointer px-3 py-1 text-[11px] font-bold text-gray-700 hover:bg-gray-300 transition-colors"
-                              >
-                                Xóa
-                              </button>
+                  loadingRequests ? (
+                    <div className="py-4 text-center text-sm text-gray-500">
+                      Đang tải yêu cầu...
+                    </div>
+                  ) : friendRequests.length > 0 ? (
+                    <div className="max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                      <ul className="space-y-2">
+                        {friendRequests.map((req) => (
+                          <li key={req.id} className="flex items-center gap-3">
+                            <Image
+                              src={req.requester.avatarUrl || "/userAvatar.png"}
+                              alt={req.requester.name}
+                              width={40}
+                              height={40}
+                              className="h-10 w-10 rounded-full object-cover"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-gray-800">
+                                {req.requester.name}
+                              </p>
+                              <p className="truncate text-[11px] text-gray-500">
+                                Gửi lời mời kết bạn
+                              </p>
+                              <div className="mt-1.5 flex gap-2">
+                                <button
+                                  onClick={() =>
+                                    handleAcceptRequest(req.requesterId)
+                                  }
+                                  className="rounded-md bg-[#f9622e] cursor-pointer px-3 py-1 text-[11px] font-bold text-white hover:bg-[#d84e1e] transition-colors"
+                                >
+                                  Chấp nhận
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleRejectRequest(req.requesterId)
+                                  }
+                                  className="rounded-md bg-gray-200 cursor-pointer px-3 py-1 text-[11px] font-bold text-gray-700 hover:bg-gray-300 transition-colors"
+                                >
+                                  Xóa
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <div className="py-4 text-center text-sm text-gray-500">
-                    Không có yêu cầu nào gửi cho bạn
-                  </div>
-                )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="py-4 text-center text-sm text-gray-500">
+                      Không có yêu cầu nào gửi cho bạn
+                    </div>
+                  )}
               </div>
             </div>
           ) : (
