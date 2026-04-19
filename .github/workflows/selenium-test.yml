@@ -2,7 +2,7 @@ name: Selenium Test
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "ci-test" ]
 
 jobs:
   test:
