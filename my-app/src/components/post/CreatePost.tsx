@@ -194,16 +194,16 @@ const mockStories = [
   },
 ];
 
-export function CreatePost({ onCreatePost }: CreatePostProps) {
-  const { toast } = useToast();
-  const { user, isAuthenticated } = useAuth();
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authFeature, setAuthFeature] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedMediaList, setSelectedMediaList] = useState<{
-    url: string;
-    type: "image" | "video";
-  }[]>([]);
+  export function CreatePost({ onCreatePost }: CreatePostProps) {
+    const { toast } = useToast();
+    const { user, isAuthenticated } = useAuth();
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [authFeature, setAuthFeature] = useState("");
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedMediaList, setSelectedMediaList] = useState<{
+      url: string;
+      type: "image" | "video";
+    }[]>([]);
   const [privacy, setPrivacy] = useState<"public" | "friends" | "private">(
     "public",
   );
@@ -1049,12 +1049,12 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black">
           {/* Background Blur Effect */}
           <div className="absolute inset-0 opacity-30 blur-3xl">
-             <Image 
-               src={mockStories[activeStoryIndex].image} 
-               alt="bg" 
-               fill 
-               className="object-cover" 
-             />
+            <Image
+              src={mockStories[activeStoryIndex].image}
+              alt="bg"
+              fill
+              className="object-cover"
+            />
           </div>
 
           {/* Main Content Container */}
@@ -1072,12 +1072,12 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
             {/* Header Info */}
             <div className="absolute top-4 left-0 right-0 z-20 flex items-center justify-between px-4 pt-2">
               <div className="flex items-center gap-3">
-                <Image 
-                  src={mockStories[activeStoryIndex].user.avatar} 
-                  alt="avatar" 
-                  width={40} 
-                  height={40} 
-                  className="rounded-full border-2 border-[#f9622e]" 
+                <Image
+                  src={mockStories[activeStoryIndex].user.avatar}
+                  alt="avatar"
+                  width={40}
+                  height={40}
+                  className="rounded-full border-2 border-[#f9622e]"
                 />
                 <div>
                   <p className="text-sm font-bold text-white">{mockStories[activeStoryIndex].user.name}</p>
@@ -1110,16 +1110,16 @@ export function CreatePost({ onCreatePost }: CreatePostProps) {
 
             {/* Main Image */}
             <div className="relative h-full w-full">
-               <Image 
-                 src={mockStories[activeStoryIndex].image} 
-                 alt="story" 
-                 fill 
-                 className="object-contain" 
-                 priority
-               />
-               {/* Navigation Click Zones */}
-               <div className="absolute inset-y-0 left-0 w-1/3 z-10" onClick={handlePrevStory} />
-               <div className="absolute inset-y-0 right-0 w-2/3 z-10" onClick={handleNextStory} />
+              <Image
+                src={mockStories[activeStoryIndex].image}
+                alt="story"
+                fill
+                className="object-contain"
+                priority
+              />
+              {/* Navigation Click Zones */}
+              <div className="absolute inset-y-0 left-0 w-1/3 z-10" onClick={handlePrevStory} />
+              <div className="absolute inset-y-0 right-0 w-2/3 z-10" onClick={handleNextStory} />
             </div>
           </div>
         </div>
