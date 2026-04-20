@@ -40,12 +40,13 @@ const chrome = require("selenium-webdriver/chrome");
         // 👉 check thành công
         if (currentUrl === "https://social-media-frontend-94uz.onrender.com/") {
             console.log(" LOGIN PASS");
+            process.exit(0); // SUCCESS
         } else {
             console.log(" LOGIN FAIL");
-
             let body = await driver.findElement(By.css("body")).getText();
             console.log("Page content:");
             console.log(body);
+            process.exit(1); // FAIL
         }
 
     } catch (err) {
