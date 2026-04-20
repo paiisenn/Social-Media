@@ -34,7 +34,10 @@ const chrome = require("selenium-webdriver/chrome");
         await driver.findElement(By.css('button[type="submit"]')).click();
 
         console.log("👉 Waiting for redirect...");
-        await driver.wait(until.urlContains("/"), 10000);
+        await driver.wait(async () => {
+            let url = await driver.getCurrentUrl();
+            return !url.includes("/login");
+        }, 15000);
 
         let currentUrl = await driver.getCurrentUrl();
         console.log(" Current URL:", currentUrl);
