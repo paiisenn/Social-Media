@@ -30,60 +30,56 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup SSH with base64
+      - name: Setup SSH
         run: |
-          set -e
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
+          cat > ~/.ssh/id_rsa << 'KEYEOF'
+          ${{ secrets.GCP_SSH_KEY }}
+          KEYEOF
+          chmod 600 ~/.ssh/id_rsa
           
-          # Decode base64 SSH key (tránh newline issues)
-          echo "${{ secrets.GCP_SSH_KEY }}" | base64 -d > ~/.ssh/id_rsa 2>/dev/null || \
-          echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
-          
-          # Verify key
-          if grep -q "BEGIN.*PRIVATE KEY" ~/.ssh/id_rsa; then
-            echo "✅ SSH key OK"
-          else
-            echo "❌ SSH key invalid"
-            file ~/.ssh/id_rsa
+          # Verify
+          if ! grep -q "PRIVATE KEY" ~/.ssh/id_rsa; then
+            echo "❌ Key invalid"
             exit 1
           fi
           
-          chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.GCP_VM_IP }} >> ~/.ssh/known_hosts 2>&1
-          echo "✅ SSH setup complete"
+          echo "✅ SSH ready"
 
       - name: Test SSH connection
         run: |
-          timeout 15 ssh -i ~/.ssh/id_rsa -v -o StrictHostKeyChecking=no \
+          echo "Testing SSH..."
+          ssh -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=10 \
             ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} \
-            "echo '✅ Connected' && whoami" || {
-            echo "❌ SSH failed"
+            "whoami && pwd" && echo "✅ SSH OK" || {
+            echo "❌ SSH FAILED"
             exit 1
           }
 
-      - name: Deploy and run tests
+      - name: Copy files
         run: |
-          HOST="${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}"
-          SSH_KEY=~/.ssh/id_rsa
-          
-          echo "📤 Syncing project..."
-          rsync -avz -e "ssh -i $SSH_KEY -o StrictHostKeyChecking=no" \
-            --delete my-app/ $HOST:~/social-media/my-app/ || {
-            echo "❌ rsync failed, trying scp..."
-            timeout 30 scp -r -i $SSH_KEY -o StrictHostKeyChecking=no \
-              my-app $HOST:~/social-media/ || exit 1
+          echo "Copying files..."
+          scp -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=no \
+            -r my-app \
+            ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~/social-media/ && \
+            echo "✅ Files copied" || {
+            echo "❌ Copy failed"
+            exit 1
           }
-          echo "✅ Project synced"
-          
-          echo "🧪 Running tests..."
-          ssh -i $SSH_KEY -o StrictHostKeyChecking=no $HOST << 'EOF'
-          set -e
-          cd ~/social-media/my-app
-          echo "📂 Directory: $(pwd)"
-          echo "📦 Installing..."
-          npm ci --legacy-peer-deps || exit 1
-          echo "🧪 Testing..."
-          node tests/auth/login.test.js || exit 1
-          echo "✅ All done!"
-          EOF
+
+      - name: Run test
+        run: |
+          echo "Running test..."
+          ssh -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} \
+            "cd ~/social-media/my-app && npm install && node tests/auth/login.test.js" && \
+            echo "✅ Test passed" || {
+            echo "❌ Test failed"
+            exit 1
+          }
