@@ -35,7 +35,7 @@ jobs:
 
       - name: Copy test code to VM
         run: |
-          scp -r ./my-app ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~
+          scp -r my-app ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~
 
       - name: Run Selenium on VM
         run: |
