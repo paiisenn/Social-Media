@@ -27,59 +27,25 @@ jobs:
       #   working-directory: my-app
 
 
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          cat > ~/.ssh/id_rsa << 'KEYEOF'
-          ${{ secrets.GCP_SSH_KEY }}
-          KEYEOF
-          chmod 600 ~/.ssh/id_rsa
-          
-          # Verify
-          if ! grep -q "PRIVATE KEY" ~/.ssh/id_rsa; then
-            echo "❌ Key invalid"
-            exit 1
-          fi
-          
-          ssh-keyscan -H ${{ secrets.GCP_VM_IP }} >> ~/.ssh/known_hosts 2>&1
-          echo "✅ SSH ready"
+      - uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.GCP_SSH_KEY }}
 
       - name: Test SSH connection
         run: |
-          echo "Testing SSH..."
-          ssh -i ~/.ssh/id_rsa \
-            -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=10 \
+          ssh -o StrictHostKeyChecking=no \
             ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} \
-            "whoami && pwd" && echo "✅ SSH OK" || {
-            echo "❌ SSH FAILED"
-            exit 1
-          }
+            "echo '✅ SSH Connected' && whoami"
 
       - name: Copy files
         run: |
-          echo "Copying files..."
-          scp -i ~/.ssh/id_rsa \
-            -o StrictHostKeyChecking=no \
-            -r my-app \
-            ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~/social-media/ && \
-            echo "✅ Files copied" || {
-            echo "❌ Copy failed"
-            exit 1
-          }
+          scp -o StrictHostKeyChecking=no -r my-app \
+            ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~/social-media/
 
       - name: Run test
         run: |
-          echo "Running test..."
-          ssh -i ~/.ssh/id_rsa \
-            -o StrictHostKeyChecking=no \
+          ssh -o StrictHostKeyChecking=no \
             ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} \
-            "cd ~/social-media/my-app && npm install && node tests/auth/login.test.js" && \
-            echo "✅ Test passed" || {
-            echo "❌ Test failed"
-            exit 1
-          }
+            "cd ~/social-media/my-app && npm install && node tests/auth/login.test.js"
