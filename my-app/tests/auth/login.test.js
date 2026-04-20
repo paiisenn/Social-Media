@@ -51,7 +51,6 @@ const chrome = require("selenium-webdriver/chrome");
 
     } catch (err) {
         console.error(" ERROR:", err);
-        process.exit(1);
     } finally {
         await driver.quit();
     }
