@@ -26,6 +26,10 @@ jobs:
       #   run: node tests/auth/login.test.js tests/post/post.test.js tests/logout/logout.test.js
       #   working-directory: my-app
 
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -37,15 +41,12 @@ jobs:
         run: |
           ssh ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} << 'EOF'
             set -e
-            # Xóa folder cũ nếu tồn tại
             rm -rf ~/social-media
             mkdir -p ~/social-media
           EOF
           
-          # Scp project
           scp -r my-app ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~/social-media/
           
-          # Run test
           ssh ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} << 'EOF'
             set -e
             cd ~/social-media/my-app
