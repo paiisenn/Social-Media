@@ -30,26 +30,50 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # 2. Setup SSH (FIX 100% lỗi key + ssh-keyscan)
       - name: Setup SSH
         run: |
+          set -e
+          rm -rf ~/.ssh
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          # ⚠️ dùng secret key của bạn
           echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.GCP_VM_IP }} >> ~/.ssh/known_hosts
 
-      - name: Copy project to VM and run tests
+          echo "✅ SSH key ready"
+
+      # 3. Test SSH (có retry để tránh fail random)
+      - name: Test SSH connection
         run: |
-          ssh ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} << 'EOF'
-            set -e
-            rm -rf ~/social-media
-            mkdir -p ~/social-media
-          EOF
-          
-          scp -r my-app ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~/social-media/
-          
-          ssh ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} << 'EOF'
-            set -e
-            cd ~/social-media/my-app
-            npm install
-            node tests/auth/login.test.js
-          EOF
+          for i in {1..5}; do
+            echo "Try $i..."
+            ssh -o StrictHostKeyChecking=no \
+                -o ConnectTimeout=10 \
+                ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} \
+                "echo '✅ Connected' && whoami" && break || sleep 5
+          done
+
+      # 4. Copy code lên VM
+      - name: Copy project to VM
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} \
+              "rm -rf ~/social-media && mkdir -p ~/social-media"
+
+          scp -o StrictHostKeyChecking=no -r my-app \
+              ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~/social-media/
+
+          echo "✅ Code copied"
+
+      # 5. Run test trên VM
+      - name: Run Selenium test on VM
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} \
+              "
+              cd ~/social-media/my-app &&
+              npm install --silent &&
+              node tests/auth/login.test.js
+              "
