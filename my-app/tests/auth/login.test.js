@@ -18,20 +18,22 @@ const chrome = require("selenium-webdriver/chrome");
         .build();
 
     try {
-        // 👉 URL đúng của bạn
+        console.log("👉 Open login page");
         await driver.get("https://social-media-frontend-94uz.onrender.com/login");
 
-        // 👉 chờ input xuất hiện
+        console.log("👉 Waiting for email input...");
         await driver.wait(until.elementLocated(By.id("email")), 15000);
 
-        // 👉 nhập dữ liệu
+        console.log("👉 Enter email");
         await driver.findElement(By.id("email")).sendKeys("phamxuanhoa@gmail.com");
+
+        console.log("👉 Enter password");
         await driver.findElement(By.id("password")).sendKeys("123456789");
 
-        // 👉 click login
+        console.log("👉 Click login");
         await driver.findElement(By.css('button[type="submit"]')).click();
 
-        // 👉 chờ chuyển trang (dùng contains cho chắc)
+        console.log("👉 Waiting for redirect...");
         await driver.wait(until.urlContains("/"), 10000);
 
         let currentUrl = await driver.getCurrentUrl();
