@@ -35,12 +35,12 @@ jobs:
 
       - name: Copy test code to VM
         run: |
-          scp -r my-app ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~
+          scp -r . ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~
 
       - name: Run Selenium on VM
         run: |
           ssh ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} << 'EOF'
             cd my-app
             npm install
-            node tests/auth/login.test.js
+            node my-app/tests/auth/login.test.js
           EOF
