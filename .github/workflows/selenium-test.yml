@@ -32,6 +32,14 @@ jobs:
       - uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.GCP_SSH_KEY }}
+      - name: Check VM status
+        run: |
+          echo "🔍 Checking VM..."
+          if ! timeout 5 ping -c 1 ${{ secrets.GCP_VM_IP }} &> /dev/null; then
+            echo "❌ VM không respond, cần restart"
+            exit 1
+          fi
+          echo "✅ VM sống"
 
       - name: Test SSH connection
         run: |
