@@ -51,8 +51,30 @@ jobs:
           scp -r my-app ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~/social-media/
           
           ssh ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} << 'EOF'
-            set -e
-            cd ~/social-media/my-app
-            npm install
-            node tests/auth/login.test.js
+          set -e
+
+          echo "===== START VM ====="
+
+          echo "Current dir:"
+          pwd
+
+          echo "Home content:"
+          ls -la ~
+
+          echo "Check social-media folder:"
+          ls -la ~/social-media || echo "NO social-media"
+
+          echo "Check my-app folder:"
+          ls -la ~/social-media/my-app || echo "NO my-app"
+
+          echo "===== CD ====="
+          cd ~/social-media/my-app || exit 1
+
+          echo "===== INSTALL ====="
+          npm install || exit 1
+
+          echo "===== RUN TEST ====="
+          node tests/auth/login.test.js || exit 1
+
+          echo "===== DONE ====="
           EOF
