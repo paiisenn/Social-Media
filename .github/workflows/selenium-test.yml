@@ -9,71 +9,67 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      # - uses: actions/setup-node@v3
-      #   with:
-      #     node-version: 20
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
 
-      # - name: Install dependencies
-      #   run: npm install
-      #   working-directory: my-app
+      - name: Install dependencies
+        run: npm install
+        working-directory: my-app
 
-      # - name: Setup Chrome
-      #   uses: browser-actions/setup-chrome@v1
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
 
-      # - name: Run Selenium Test
-      #   run: node tests/auth/login.test.js tests/post/post.test.js tests/logout/logout.test.js
-      #   working-directory: my-app
+      - name: Run Selenium Test
+        run: node tests/auth/login.test.js tests/post/post.test.js tests/logout/logout.test.js
+        working-directory: my-app
 
 
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      # - name: Checkout repository
+      #   uses: actions/checkout@v3
 
-      # 2. Setup SSH (FIX 100% lỗi key + ssh-keyscan)
-      - name: Setup SSH
-        run: |
-          set -e
-          rm -rf ~/.ssh
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
+      # - name: Setup SSH
+      #   run: |
+      #     set -e
+      #     rm -rf ~/.ssh
+      #     mkdir -p ~/.ssh
+      #     chmod 700 ~/.ssh
 
-          # ⚠️ dùng secret key của bạn
-          echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+      #     # ⚠️ dùng secret key của bạn
+      #     echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
+      #     chmod 600 ~/.ssh/id_rsa
 
-          echo "✅ SSH key ready"
+      #     echo "✅ SSH key ready"
 
-      # 3. Test SSH (có retry để tránh fail random)
-      - name: Test SSH connection
-        run: |
-          for i in {1..5}; do
-            echo "Try $i..."
-            ssh -o StrictHostKeyChecking=no \
-                -o ConnectTimeout=10 \
-                ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} \
-                "echo '✅ Connected' && whoami" && break || sleep 5
-          done
+      # - name: Test SSH connection
+      #   run: |
+      #     for i in {1..5}; do
+      #       echo "Try $i..."
+      #       ssh -o StrictHostKeyChecking=no \
+      #           -o ConnectTimeout=10 \
+      #           ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} \
+      #           "echo '✅ Connected' && whoami" && break || sleep 5
+      #     done
 
-      # 4. Copy code lên VM
-      - name: Copy project to VM
-        run: |
-          ssh -o StrictHostKeyChecking=no \
-              ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} \
-              "rm -rf ~/social-media && mkdir -p ~/social-media"
+      # - name: Copy project to VM
+      #   run: |
+      #     ssh -o StrictHostKeyChecking=no \
+      #         ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} \
+      #         "rm -rf ~/social-media && mkdir -p ~/social-media"
 
-          scp -o StrictHostKeyChecking=no -r my-app \
-              ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~/social-media/
+      #     scp -o StrictHostKeyChecking=no -r my-app \
+      #         ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~/social-media/
 
-          echo "✅ Code copied"
+      #     echo "✅ Code copied"
 
-      # 5. Run test trên VM
-      - name: Run Selenium test on VM
-        run: |
-          ssh -o StrictHostKeyChecking=no \
-              ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} \
-              "
-              cd ~/social-media/my-app &&
-              npm install --silent &&
-              node tests/auth/login.test.js
-              "
+      # - name: Run Selenium test on VM
+      #   run: |
+      #     ssh -o StrictHostKeyChecking=no \
+      #         ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} \
+      #         "
+      #         cd ~/social-media/my-app &&
+      #         npm install --silent &&
+      #         node tests/auth/login.test.js
+      #         "
