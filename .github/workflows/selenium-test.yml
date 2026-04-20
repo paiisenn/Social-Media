@@ -30,63 +30,60 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup SSH
+      - name: Setup SSH with base64
         run: |
           set -e
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           
-          # Fix newline issues
+          # Decode base64 SSH key (tránh newline issues)
+          echo "${{ secrets.GCP_SSH_KEY }}" | base64 -d > ~/.ssh/id_rsa 2>/dev/null || \
           echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
           
-          # Verify key format
-          if ! grep -q "BEGIN RSA PRIVATE KEY\|BEGIN OPENSSH PRIVATE KEY" ~/.ssh/id_rsa; then
-            echo "❌ SSH key format invalid"
-            head -c 100 ~/.ssh/id_rsa
+          # Verify key
+          if grep -q "BEGIN.*PRIVATE KEY" ~/.ssh/id_rsa; then
+            echo "✅ SSH key OK"
+          else
+            echo "❌ SSH key invalid"
+            file ~/.ssh/id_rsa
             exit 1
           fi
           
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.GCP_VM_IP }} >> ~/.ssh/known_hosts 2>&1
-          
           echo "✅ SSH setup complete"
 
       - name: Test SSH connection
         run: |
-          echo "🔗 Testing SSH connection..."
-          timeout 10 ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+          timeout 15 ssh -i ~/.ssh/id_rsa -v -o StrictHostKeyChecking=no \
             ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} \
-            "echo '✅ SSH Connected' && uname -a" || {
-            echo "❌ SSH connection failed"
+            "echo '✅ Connected' && whoami" || {
+            echo "❌ SSH failed"
             exit 1
           }
 
       - name: Deploy and run tests
         run: |
           HOST="${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}"
-          SSH_OPTS="-i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o ConnectTimeout=10"
+          SSH_KEY=~/.ssh/id_rsa
           
-          echo "📤 Copying project..."
-          timeout 30 scp -r $SSH_OPTS my-app $HOST:~/social-media/ || {
-            echo "❌ SCP failed"
-            exit 1
+          echo "📤 Syncing project..."
+          rsync -avz -e "ssh -i $SSH_KEY -o StrictHostKeyChecking=no" \
+            --delete my-app/ $HOST:~/social-media/my-app/ || {
+            echo "❌ rsync failed, trying scp..."
+            timeout 30 scp -r -i $SSH_KEY -o StrictHostKeyChecking=no \
+              my-app $HOST:~/social-media/ || exit 1
           }
-          echo "✅ Files copied"
+          echo "✅ Project synced"
           
-          echo "🧪 Running test on VM..."
-          timeout 60 ssh $SSH_OPTS $HOST << 'EOF'
+          echo "🧪 Running tests..."
+          ssh -i $SSH_KEY -o StrictHostKeyChecking=no $HOST << 'EOF'
           set -e
-          
-          echo "===== START VM ====="
-          pwd
-          ls -la ~/social-media/my-app || exit 1
-          
-          echo "===== INSTALL ====="
           cd ~/social-media/my-app
-          npm install --prefer-offline --no-audit || exit 1
-          
-          echo "===== RUN TEST ====="
+          echo "📂 Directory: $(pwd)"
+          echo "📦 Installing..."
+          npm ci --legacy-peer-deps || exit 1
+          echo "🧪 Testing..."
           node tests/auth/login.test.js || exit 1
-          
-          echo "===== DONE ====="
+          echo "✅ All done!"
           EOF
