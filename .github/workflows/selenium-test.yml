@@ -33,14 +33,14 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.GCP_VM_IP }} >> ~/.ssh/known_hosts
 
-      - name: Copy test code to VM
+      - name: Copy project to VM
         run: |
-          scp -r . ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~
+          scp -r . ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~/social-media
 
       - name: Run Selenium on VM
         run: |
           ssh ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} << 'EOF'
-            cd my-app
+            cd ~/social-media/my-app
             npm install
-            node my-app/tests/auth/login.test.js
+            node tests/auth/login.test.js
           EOF
