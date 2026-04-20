@@ -36,7 +36,7 @@ jobs:
           rm -rf ~/.ssh
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
+          printf "%s" "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.GCP_VM_IP }} >> ~/.ssh/known_hosts
 
