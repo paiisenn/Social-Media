@@ -33,13 +33,21 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.GCP_VM_IP }} >> ~/.ssh/known_hosts
 
-      - name: Copy project to VM
-        run: |
-          scp -r . ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~/social-media
-
-      - name: Run Selenium on VM
+      - name: Copy project to VM and run tests
         run: |
           ssh ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} << 'EOF'
+            set -e
+            # Xóa folder cũ nếu tồn tại
+            rm -rf ~/social-media
+            mkdir -p ~/social-media
+          EOF
+          
+          # Scp project
+          scp -r my-app ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }}:~/social-media/
+          
+          # Run test
+          ssh ${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_IP }} << 'EOF'
+            set -e
             cd ~/social-media/my-app
             npm install
             node tests/auth/login.test.js
