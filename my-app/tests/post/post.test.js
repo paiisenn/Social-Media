@@ -34,7 +34,7 @@ function createDriver() {
         await driver.findElement(By.id("email")).sendKeys("phamxuanhoa@gmail.com");
 
         console.log("👉 Enter password");
-        await driver.findElement(By.id("password")).sendKeys("000");
+        await driver.findElement(By.id("password")).sendKeys("123456789");
 
         console.log("👉 Click login");
         await driver.findElement(By.css('button[type="submit"]')).click();
