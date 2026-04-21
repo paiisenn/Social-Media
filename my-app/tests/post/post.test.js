@@ -1,5 +1,4 @@
-const { Builder, By, until } = require("selenium-webdriver");
-//const chrome = require("selenium-webdriver/chrome");
+const { By, until } = require("selenium-webdriver");
 const { createDriver } = require("../utils/driver");
 
 (async function testPost() {
@@ -11,6 +10,9 @@ const { createDriver } = require("../utils/driver");
         console.log("👉 Open login page");
         await driver.get("https://social-media-frontend-94uz.onrender.com/login");
 
+        console.log("👉 Waiting login form...");
+        await driver.wait(until.elementLocated(By.id("email")), 10000);
+
         console.log("👉 Enter email");
         await driver.findElement(By.id("email")).sendKeys("phamxuanhoa@gmail.com");
 
@@ -20,7 +22,7 @@ const { createDriver } = require("../utils/driver");
         console.log("👉 Click login");
         await driver.findElement(By.css('button[type="submit"]')).click();
 
-        console.log("👉 Waiting for home page...");
+        console.log("👉 Waiting home page...");
         await driver.wait(until.urlContains("/"), 10000);
 
         // ================= OPEN POST MODAL =================
@@ -45,14 +47,11 @@ const { createDriver } = require("../utils/driver");
             10000
         );
 
-        console.log("👉 Waiting textarea visible...");
-        await driver.wait(until.elementIsVisible(textarea), 10000);
-
-        console.log("👉 Typing post content");
+        console.log("👉 Typing content...");
         await textarea.sendKeys("Hello from Selenium 4");
 
         // ================= POST BUTTON =================
-        console.log("👉 Finding post button");
+        console.log("👉 Finding post button...");
 
         const postBtn = await driver.wait(
             until.elementLocated(
@@ -65,16 +64,16 @@ const { createDriver } = require("../utils/driver");
         await postBtn.click();
 
         // ================= VERIFY =================
-        console.log("👉 Waiting 3s for post to appear...");
+        console.log("👉 Waiting post render...");
         await driver.sleep(3000);
 
         console.log("👉 Reading page content...");
         let body = await driver.findElement(By.css("body")).getText();
 
         if (body.includes("Hello from Selenium 4")) {
-            console.log(" TC-005 PASS");
+            console.log("✅ TC-005 PASS");
         } else {
-            console.log(" TC-005 FAIL");
+            console.log("❌ TC-005 FAIL");
         }
 
     } catch (err) {
