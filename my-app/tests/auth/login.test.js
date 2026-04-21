@@ -41,18 +41,29 @@ const chrome = require("selenium-webdriver/chrome");
         console.log("👉 Checking login result...");
 
         // 🔥 đợi toast xuất hiện (tối đa 5s)
+        console.log("👉 Checking login result...");
+
+        // đợi toast xuất hiện
         let toast = await driver.wait(
             until.elementLocated(By.css("div.bg-red-50")),
             5000
         ).catch(() => null);
 
         if (toast) {
-            let text = await toast.getText();
+            // 🔥 đợi text render
+            let text = await driver.wait(async () => {
+                let t = await toast.getText();
+                return t && t.trim().length > 0 ? t : false;
+            }, 5000).catch(() => "");
 
             console.log("=================================");
             console.log("❌ LOGIN FAIL");
-            console.log("📢 Toast content:");
-            console.log(text);
+
+            if (text) {
+                console.log("📢 Toast content:", text);
+            } else {
+                console.log("⚠️ Toast found but NO TEXT (CI render delay)");
+            }
 
             let currentUrl = await driver.getCurrentUrl();
             console.log("🌐 URL:", currentUrl);
