@@ -2,7 +2,18 @@ const { By, until } = require("selenium-webdriver");
 const { createDriver } = require("../utils/driver");
 
 (async function testLogout() {
-    let driver = await createDriver();
+    let options = new chrome.Options();
+        options.addArguments(
+            "--headless",                // chạy không cần UI
+            "--no-sandbox",              // fix lỗi GitHub Actions
+            "--disable-dev-shm-usage",
+            "--disable-gpu"
+        );
+    
+        let driver = await new Builder()
+            .forBrowser("chrome")
+            .setChromeOptions(options)
+            .build();
 
     try {
         console.log("========== LOGOUT TEST ==========");
