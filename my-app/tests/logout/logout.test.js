@@ -1,5 +1,6 @@
-const { By, until } = require("selenium-webdriver");
-const { createDriver } = require("../utils/driver");
+const { Builder, By, until } = require("selenium-webdriver");
+const chrome = require("selenium-webdriver/chrome");
+//const { createDriver } = require("../utils/driver");
 
 (async function testLogout() {
     let options = new chrome.Options();
@@ -51,7 +52,9 @@ const { createDriver } = require("../utils/driver");
         );
 
         console.log("👉 Click logout");
-        await driver.findElement(By.xpath("//*[contains(text(),'Đăng xuất')]")).click();
+        //await driver.findElement(By.xpath("//*[contains(text(),'Đăng xuất')]")).click();
+        let logoutBtn = await driver.findElement(By.xpath("//*[contains(text(),'Đăng xuất')]"));
+        await driver.executeScript("arguments[0].click();", logoutBtn);
 
         console.log("👉 Waiting for confirm modal...");
         await driver.wait(
