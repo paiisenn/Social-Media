@@ -28,31 +28,71 @@ const chrome = require("selenium-webdriver/chrome");
         await driver.findElement(By.id("email")).sendKeys("phamxuanhoa@gmail.com");
 
         console.log("👉 Enter password");
-        await driver.findElement(By.id("password")).sendKeys("0000000");
+        await driver.findElement(By.id("password")).sendKeys("00000000");
 
         console.log("👉 Click login");
         await driver.findElement(By.css('button[type="submit"]')).click();
 
-        console.log("👉 Waiting for redirect...");
-        await driver.wait(async () => {
-            let url = await driver.getCurrentUrl();
-            return !url.includes("/login");
-        }, 15000);
+        console.log("👉 Checking login result...");
+
+
+        await driver.sleep(2000); // đợi toast render
+        // ❌ check login fail (toast)
+        console.log("👉 Checking login result...");
+
+        // 🔥 đợi toast xuất hiện (tối đa 5s)
+        let toast = await driver.wait(
+            until.elementLocated(By.css("div.bg-red-50")),
+            5000
+        ).catch(() => null);
+
+        if (toast) {
+            let text = await toast.getText();
+
+            console.log("=================================");
+            console.log("❌ LOGIN FAIL");
+            console.log("📢 Toast content:");
+            console.log(text);
+
+            let currentUrl = await driver.getCurrentUrl();
+            console.log("🌐 URL:", currentUrl);
+            console.log("=================================");
+
+            process.exit(1);
+        }
 
         let currentUrl = await driver.getCurrentUrl();
-        console.log(" Current URL:", currentUrl);
+        console.log("Current URL:", currentUrl);
+
+        if (!currentUrl.includes("/login")) {
+            console.log("✅ LOGIN PASS");
+            process.exit(0);
+        }
+
+        // fallback
+        console.log("❌ LOGIN FAIL (unknown)");
+        process.exit(1);
+                
+        // console.log("👉 Waiting for redirect...");
+        // await driver.wait(async () => {
+        //     let url = await driver.getCurrentUrl();
+        //     return !url.includes("/login");
+        // }, 15000);
+
+        // let currentUrl = await driver.getCurrentUrl();
+        // console.log(" Current URL:", currentUrl);
 
         // 👉 check thành công
-        if (currentUrl === "https://social-media-frontend-94uz.onrender.com/") {
-            console.log(" LOGIN PASS");
-            process.exit(0); // SUCCESS
-        } else {
-            console.log(" LOGIN FAIL");
-            let body = await driver.findElement(By.css("body")).getText();
-            console.log("Page content:");
-            console.log(body);
-            process.exit(1); // FAIL
-        }
+        // if (currentUrl === "https://social-media-frontend-94uz.onrender.com/") {
+        //     console.log(" LOGIN PASS");
+        //     process.exit(0); // SUCCESS
+        // } else {
+        //     console.log(" LOGIN FAIL");
+        //     let body = await driver.findElement(By.css("body")).getText();
+        //     console.log("Page content:");
+        //     console.log(body);
+        //     process.exit(1); // FAIL
+        // }
 
     } catch (err) {
         console.error(" ERROR:", err);
