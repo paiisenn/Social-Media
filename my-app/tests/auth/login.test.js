@@ -3,7 +3,7 @@ const chrome = require("selenium-webdriver/chrome");
 
 (async function testLogin() {
 
-    // ⚠️ cấu hình Chrome cho CI
+    // cấu hình Chrome cho CI
     let options = new chrome.Options();
     options.addArguments(
         "--headless",                // chạy không cần UI
@@ -18,26 +18,26 @@ const chrome = require("selenium-webdriver/chrome");
         .build();
 
     try {
-        // 👉 URL đúng của bạn
+        // URL đúng của bạn
         await driver.get("https://social-media-frontend-94uz.onrender.com/login");
 
-        // 👉 chờ input xuất hiện
+        // chờ input xuất hiện
         await driver.wait(until.elementLocated(By.id("email")), 15000);
 
-        // 👉 nhập dữ liệu
+        // nhập dữ liệu
         await driver.findElement(By.id("email")).sendKeys("phamxuanhoa@gmail.com");
         await driver.findElement(By.id("password")).sendKeys("123456789");
 
-        // 👉 click login
+        // click login
         await driver.findElement(By.css('button[type="submit"]')).click();
 
-        // 👉 chờ chuyển trang (dùng contains cho chắc)
+        // chờ chuyển trang 
         await driver.wait(until.urlContains("/"), 10000);
 
         let currentUrl = await driver.getCurrentUrl();
         console.log(" Current URL:", currentUrl);
 
-        // 👉 check thành công
+        // check thành công
         if (currentUrl === "https://social-media-frontend-94uz.onrender.com/") {
             console.log(" LOGIN PASS");
         } else {
