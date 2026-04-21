@@ -11,10 +11,10 @@ const chrome = require("selenium-webdriver/chrome");
             "--disable-gpu"
         );
     
-        let driver = await new Builder()
-            .forBrowser("chrome")
-            .setChromeOptions(options)
-            .build();
+    let driver = await new Builder()
+        .forBrowser("chrome")
+        .setChromeOptions(options)
+        .build();
 
     try {
         console.log("========== LOGOUT TEST ==========");
