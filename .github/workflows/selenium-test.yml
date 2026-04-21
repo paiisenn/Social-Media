@@ -23,7 +23,7 @@ jobs:
         uses: browser-actions/setup-chrome@v1
 
       - name: Run Selenium Test
-        run: node tests/logout/logout.test.js
+        run: node tests/post/post.test.js
         # run: node tests/auth/login.test.js tests/post/post.test.js tests/logout/logout.test.js
         working-directory: my-app
 
