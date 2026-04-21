@@ -3,7 +3,7 @@ const chrome = require("selenium-webdriver/chrome");
 
 (async function testLogin() {
 
-    // ⚠️ cấu hình Chrome cho CI
+    //  cấu hình Chrome cho CI
     let options = new chrome.Options();
     options.addArguments(
         "--headless",                // chạy không cần UI
@@ -18,30 +18,30 @@ const chrome = require("selenium-webdriver/chrome");
         .build();
 
     try {
-        console.log("👉 Open login page");
+        console.log("Open login page");
         await driver.get("https://social-media-frontend-94uz.onrender.com/login");
 
-        console.log("👉 Waiting for email input...");
+        console.log("Waiting for email input...");
         await driver.wait(until.elementLocated(By.id("email")), 15000);
 
-        console.log("👉 Enter email");
+        console.log("Enter email");
         await driver.findElement(By.id("email")).sendKeys("phamxuanhoa@gmail.com");
 
-        console.log("👉 Enter password");
-        await driver.findElement(By.id("password")).sendKeys("00000000");
+        console.log("Enter password");
+        await driver.findElement(By.id("password")).sendKeys("123456789");
 
-        console.log("👉 Click login");
+        console.log("Click login");
         await driver.findElement(By.css('button[type="submit"]')).click();
 
-        console.log("👉 Checking login result...");
+        console.log("Checking login result...");
 
 
         await driver.sleep(2000); // đợi toast render
-        // ❌ check login fail (toast)
-        console.log("👉 Checking login result...");
+        // check login fail (toast)
+        console.log("Checking login result...");
 
-        // 🔥 đợi toast xuất hiện (tối đa 5s)
-        console.log("👉 Checking login result...");
+        //  đợi toast xuất hiện (tối đa 5s)
+        console.log("Checking login result...");
 
         // đợi toast xuất hiện
         let toast = await driver.wait(
@@ -50,23 +50,23 @@ const chrome = require("selenium-webdriver/chrome");
         ).catch(() => null);
 
         if (toast) {
-            // 🔥 đợi text render
+            //  đợi text render
             let text = await driver.wait(async () => {
                 let t = await toast.getText();
                 return t && t.trim().length > 0 ? t : false;
             }, 5000).catch(() => "");
 
             console.log("=================================");
-            console.log("❌ LOGIN FAIL");
+            console.log("LOGIN FAIL");
 
             if (text) {
-                console.log("📢 Toast content:", text);
+                console.log("Toast content:", text);
             } else {
-                console.log("⚠️ Toast found but NO TEXT (CI render delay)");
+                console.log("Toast found but NO TEXT (CI render delay)");
             }
 
             let currentUrl = await driver.getCurrentUrl();
-            console.log("🌐 URL:", currentUrl);
+            console.log("URL:", currentUrl);
             console.log("=================================");
 
             process.exit(1);
@@ -76,15 +76,15 @@ const chrome = require("selenium-webdriver/chrome");
         console.log("Current URL:", currentUrl);
 
         if (!currentUrl.includes("/login")) {
-            console.log("✅ LOGIN PASS");
+            console.log("LOGIN PASS");
             process.exit(0);
         }
 
         // fallback
-        console.log("❌ LOGIN FAIL (unknown)");
+        console.log("LOGIN FAIL (unknown)");
         process.exit(1);
                 
-        // console.log("👉 Waiting for redirect...");
+        // console.log("Waiting for redirect...");
         // await driver.wait(async () => {
         //     let url = await driver.getCurrentUrl();
         //     return !url.includes("/login");
@@ -93,7 +93,7 @@ const chrome = require("selenium-webdriver/chrome");
         // let currentUrl = await driver.getCurrentUrl();
         // console.log(" Current URL:", currentUrl);
 
-        // 👉 check thành công
+        // check thành công
         // if (currentUrl === "https://social-media-frontend-94uz.onrender.com/") {
         //     console.log(" LOGIN PASS");
         //     process.exit(0); // SUCCESS
