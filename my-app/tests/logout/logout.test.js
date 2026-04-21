@@ -5,59 +5,88 @@ const { createDriver } = require("../utils/driver");
     let driver = await createDriver();
 
     try {
+        console.log("========== LOGOUT TEST ==========");
+
+        console.log("👉 Open login page");
         await driver.get("https://social-media-frontend-94uz.onrender.com/login");
 
-        // wait form
+        console.log("👉 Waiting for login form...");
         await driver.wait(until.elementLocated(By.id("email")), 10000);
         await driver.wait(until.elementLocated(By.id("password")), 10000);
 
-        // login
+        console.log("👉 Enter email");
         await driver.findElement(By.id("email")).sendKeys("phamxuanhoa@gmail.com");
+
+        console.log("👉 Enter password");
         await driver.findElement(By.id("password")).sendKeys("123456789");
+
+        console.log("👉 Click login");
         await driver.findElement(By.css('button[type="submit"]')).click();
 
-        // wait redirect
+        console.log("👉 Waiting for login success...");
+        await driver.wait(async () => {
+            let url = await driver.getCurrentUrl();
+            return !url.includes("/login");
+        }, 15000);
+
+        let loginUrl = await driver.getCurrentUrl();
+        console.log("✅ Logged in, current URL:", loginUrl);
+
+        // ================= LOGOUT =================
+        console.log("👉 Waiting for logout button...");
         await driver.wait(
-            until.urlContains("social-media-frontend-94uz.onrender.com"),
+            until.elementLocated(By.xpath("//*[contains(text(),'Đăng xuất')]")),
             10000
         );
 
-        // click logout sidebar
-        await driver.wait(
-        until.elementLocated(By.xpath("//*[contains(text(),'Đăng xuất')]")),
-        10000
-        );
+        console.log("👉 Click logout");
         await driver.findElement(By.xpath("//*[contains(text(),'Đăng xuất')]")).click();
 
-        // chờ modal hiện
+        console.log("👉 Waiting for confirm modal...");
         await driver.wait(
-        until.elementLocated(By.xpath("//button[contains(@class,'bg-red-500')]")),
-        10000
+            until.elementLocated(By.xpath("//button[contains(@class,'bg-red-500')]")),
+            10000
         );
 
-        // click confirm logout
+        console.log("👉 Confirm logout");
         await driver.findElement(By.xpath("//button[contains(@class,'bg-red-500')]")).click();
 
-        // chờ redirect về login
+        console.log("👉 Waiting redirect to login...");
         await driver.wait(until.urlContains("/login"), 10000);
+
+        let afterLogoutUrl = await driver.getCurrentUrl();
+        console.log("✅ After logout URL:", afterLogoutUrl);
 
         console.log(" TC-008 PASS");
 
-        // thử truy cập lại
+        // ================= VERIFY =================
+        console.log("👉 Try access home after logout...");
         await driver.get("https://social-media-frontend-94uz.onrender.com/");
         await driver.sleep(2000);
 
         let currentUrl = await driver.getCurrentUrl();
+        console.log("👉 Current URL after access:", currentUrl);
 
-        if (currentUrl.includes("/login") || currentUrl.includes("/")) {
+        if (currentUrl.includes("/")) {
             console.log(" TC-009 PASS");
         } else {
             console.log(" TC-009 FAIL");
         }
 
     } catch (err) {
-        console.log(" LOGOUT FAIL", err);
+        console.error("❌ LOGOUT FAIL:", err);
+
+        try {
+            let body = await driver.findElement(By.css("body")).getText();
+            console.log("👉 Page content:");
+            console.log(body);
+        } catch (e) {
+            console.log("⚠️ Cannot get page content");
+        }
+
+        process.exit(1); // báo fail cho GitHub Actions
     } finally {
+        console.log("👉 Closing browser...");
         await driver.quit();
     }
 })();
