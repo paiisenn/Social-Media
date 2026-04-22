@@ -28,7 +28,7 @@ const chrome = require("selenium-webdriver/chrome");
         await driver.findElement(By.id("email")).sendKeys("phamxuanhoa@gmail.com");
 
         console.log("Enter password");
-        await driver.findElement(By.id("password")).sendKeys("123456780");
+        await driver.findElement(By.id("password")).sendKeys("123456781");
 
         console.log("Click login");
         await driver.findElement(By.css('button[type="submit"]')).click();
